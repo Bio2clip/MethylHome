@@ -36,18 +36,12 @@ workflow {
                     .splitCsv()
                     .map { row -> row[0] }
                     .first()
-                    .view()
-
-    //lines = file(sample_sheet).text.readLines()
-
-    //data_index = lines.findIndexOf { it.contains('Sample_Name') }
 
     if (first_line.contains('[Header]')){
         // Create channel with all samples
         samples_ch = Channel.fromPath(sample_sheet)
                             .splitCsv(header : true, skip: 7)
                             .map { row -> tuple(row.Sample_Name, file("${row.file_path}_Grn.idat"),file("${row.file_path}_Red.idat"))}
-                            .view()
     } else {
         // Create channel with all samples
         samples_ch = Channel.fromPath(sample_sheet)
