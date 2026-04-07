@@ -1,0 +1,119 @@
+#!/usr/bin/env Rscript
+
+# Verify sample quality : chromosmal abnormalities and contamination 
+
+# Compute xy methylation intensities
+# Libraries : forcats, dplyr, ggplot2, patchwork, gridExtra
+
+#### --- DOCUMENTATION --- ####
+#' Verify sample sex consistency 
+#' 
+#' @Description 
+#' 
+#' Predict samples sex, generate sex consistency report and tsv summary file
+#' 
+#' @Usage 
+#' 
+#' control_sex(sex_info)
+#' 
+#' @Arguments 
+#' 
+#' sex_info     tsv file with columns Sample_Name, Sample_IDAT, Gender, X and Y intensities as given by compute_xy_intensities function
+#' 
+#' 
+
+
+library(dplyr)
+library(forcats)
+library(ggplot2)
+library(patchwork)
+library(gridExtra)
+
+sex_info_path <- "${sex_info}"
+
+sex_info <- read.csv(sex_info_path, sep = "\t")
+
+### --- Predict sex of each sample
+
+# Predict sex of each sample
+sex_info[["predicted_sex"]] <- ewastools::predict_sex(sex_info[["X"]], sex_info[["Y"]], which(sex_info[["Gender"]]=="m"), which(sex_info[["Gender"]]=="f"))
+sex_info <- as.data.frame(sex_info)
+
+# Rename NA for them to be ploted
+sex_info[["predicted_sex"]] <- fct_na_value_to_level(
+  as.factor(sex_info[["predicted_sex"]]),
+  level = "Unknown"
+)
+
+# Create a match column to compare predictions with labels
+sex_info[["match_status"]] <- ifelse(
+  as.character(sex_info[["predicted_sex"]]) == "Unknown" | 
+    as.character(sex_info[["Gender"]]) == "U", 
+  NA_character_,  # If one is unknown we put it to NA
+  ifelse(
+    as.character(sex_info[["predicted_sex"]]) == as.character(sex_info[["Gender"]]), 
+    "Correct",    
+    "Mismatch"    
+  )
+)
+
+
+### --- Plot sex info 
+p <- ggplot(sex_info, aes(x = X, y = Y, color = match_status, shape = predicted_sex)) +
+  geom_point(size = 3) +
+  # Set specific shapes: 1 is empty circle (female), 4 is 'x' (male), 2 is empty triangle (Unknown)
+  scale_shape_manual(values = c("f" = 1, "m" = 4, "Unknown" = 2)) +
+  # Set colors: Black for correct, Red for mismatch
+  scale_color_manual(values = c("Correct" = "black", "Mismatch" = "red")) +
+  labs(
+    x = "Normalized X chromosome intensities",
+    y = "Normalized Y chromosome intensities",
+    color = "Status",
+    shape = "Predicted Sex",
+    title = "Predicted sex according to X and Y intensities and comparison with data"
+  ) +
+  theme_minimal() + 
+  theme(legend.position = "right",
+        plot.title = element_text(size=11, face="bold", vjust = 0.5, hjust = 0.5))
+
+### --- Create table with failed samples
+if (length(sex_info[["Sample_IDAT"]]) < 25) {
+  failed_samples <- sex_info %>% select(c(Sample_Name, match_status))
+  failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", NA, "Correct"))
+  failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
+  
+} else {
+  failed_samples <- sex_info %>% filter(match_status %in% c("Mismatch", NA)) %>%
+    select(c(Sample_Name, match_status))
+  failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", NA))
+  failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
+}
+
+# Define colors based on match_status info
+row_fill <- case_when(
+  failed_samples[["match_status"]] == "Mismatch" ~ "red2",
+  failed_samples[["match_status"]] == "Correct"  ~ "palegreen2",
+  is.na(failed_samples[["match_status"]])         ~ "tan1",
+)
+
+# Create the theme
+custom_theme <- ttheme_default(
+  core = list(
+    bg_params = list(fill = row_fill)),
+  base_size = 11
+)
+
+# Generate the tablegrob
+failed_samples_table <- tableGrob(failed_samples, rows = NULL, theme = custom_theme)
+
+### --- Generate pdf report
+pdf(file.path("control_sex_report.pdf"), , width = 14, height = 8)
+print((p | failed_samples_table) + 
+      plot_layout(widths = c(1.5,1.5)) +
+      plot_annotation(title = "Identity control report - Sample sex consistency",
+      subtitle = paste("Date :", Sys.Date()),
+      theme = theme(plot.title = element_text(size = 20, face = "bold"))))
+dev.off()
+
+# Save predicted sex
+write.table(sex_info, paste0("all_predicted_sex.tsv"), row.names = F, sep = "\t", quote = FALSE)

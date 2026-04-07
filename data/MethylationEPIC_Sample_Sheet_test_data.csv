@@ -1,0 +1,13 @@
+[Header],,,,,,,,,,,,,,,,
+Investigator Name,XXX,,,,,,,,,,,,,,,
+Project Name,,,,,,,,,,,,,,,,
+Experiment Name,EPICV2-RUNXXX,,,,,,,,,,,,,,,
+Date,XX/XX/XXXX,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,
+[Data],,,,,,,,,,,,,,,,
+Sample_Name,Sample_IDAT,Sample_Plate,Sample_Group,Pool_ID,Sentrix_ID,Sentrix_Position,Material_Type,Gender,Surgical_Case,Diagnosis,Age,Notes,Tumor_site,PI_Collaborator,Outside_ID,Surgery_date,file_path
+GSM8461134,GSM8461134_207716530108_R01C01,,EPICv2,,207716530108,R01C01,FFPE,F,,Glioma,,,Brain,,,,/srv/nfs/ngs-stockage/NGS_Anapath_GHE/jdurand/Nextflow/Nextflow_QC/data/test/GSM8461134_207716530108_R01C01
+GSM8461135,GSM8461135_207716530108_R02C01,,EPICv2,,207716530108,R02C01,FFPE,M,,Glioma,,,Brain,,,,/srv/nfs/ngs-stockage/NGS_Anapath_GHE/jdurand/Nextflow/Nextflow_QC/data/test/GSM8461135_207716530108_R02C01
+GSM8461136,GSM8461136_207716530108_R03C01,,EPICv2,,207716530108,R03C01,FFPE,F,,Glioma,,,Brain,,,,/srv/nfs/ngs-stockage/NGS_Anapath_GHE/jdurand/Nextflow/Nextflow_QC/data/test/GSM8461136_207716530108_R03C01
+GSM8461137,GSM8461137_207716530108_R04C01,,EPICv2,,207716530108,R04C01,FFPE,M,,Glioma,,,Brain,,,,/srv/nfs/ngs-stockage/NGS_Anapath_GHE/jdurand/Nextflow/Nextflow_QC/data/test/GSM8461137_207716530108_R04C01
+
