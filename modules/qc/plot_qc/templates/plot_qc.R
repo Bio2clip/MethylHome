@@ -64,7 +64,7 @@ log2_un_meth_intensities_plot <- ggplot(database, aes(x = Log2UnmethIntensity, y
     geom_vline(xintercept = 8, linetype = "dashed", color = "red") + # vertical line to x=8
     geom_hline(yintercept = 8, linetype = "dashed", color = "red") + # horizontal line to y=8
     geom_point(data = qc_df, 
-               aes(x = as.numeric(Log2MethIntensity), y = as.numeric(Log2UnmethIntensity)), 
+               aes(x = as.numeric(Log2UnmethIntensity), y = as.numeric(Log2MethIntensity)), 
                color = "red", size = 2) +
     coord_cartesian(xlim = c(7.5, 12.5), ylim = c(7.5, 12.5)) +
     theme_minimal() + 
