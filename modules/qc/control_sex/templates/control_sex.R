@@ -82,11 +82,14 @@ if (length(sex_info[["Sample_IDAT"]]) < 25) {
   failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", NA, "Correct"))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
   
-} else {
+} else if (length(sex_info[["Sample_IDAT"]][is.na(sex_info[["match_status"]]) | sex_info[["match_status"]] == "Mismatch" ]) < 25) {
   failed_samples <- sex_info %>% filter(match_status %in% c("Mismatch", NA)) %>%
     select(c(Sample_Name, match_status))
   failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", NA))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
+} else {
+  failed_samples <- sex_info %>% filter(match_status %in% "Mismatch") %>%
+    select(c(Sample_Name, match_status))
 }
 
 # Define colors based on match_status info
