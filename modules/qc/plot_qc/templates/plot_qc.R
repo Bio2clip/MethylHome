@@ -75,13 +75,22 @@ log2_un_meth_intensities_plot <- ggplot(database, aes(x = Log2UnmethIntensity, y
     ) + theme(plot.title = element_text(size=11, face="bold", vjust = 0.5, hjust = 0.5))
 
 ### --- Plot ecdf detP
-detP_ewas <- meth_QC %>% detectionP
-detP_df <- as.data.frame(detP_ewas[["detP"]]) # Convert to df for ggplot
-colnames(detP_df) <- meth_QC[["meta"]][["sample_id"]]
-ecdf_P <- ecdf(detP_df[[sample_id]]) # Compute ecdf of the studied sample
 
+# Check how many probes are completely missing (M + U)
+if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
+  ecdf_detP_plot <- ggplot() +
+    annotate("text", x = 0, y = 0, label = "Too low quality to display \n detectionRate", size = 5, hjust = 0.5, col="red") +
+    xlim(-1, 1) + ylim(-1, 1) +
+    theme_void()
+  
+} else {
+  detP_ewas <- meth_QC %>% detectionP
+  detP_df <- as.data.frame(detP_ewas[["detP"]]) # Convert to df for ggplot
+  colnames(detP_df) <- meth_QC[["meta"]][["sample_id"]]
+  ecdf_P <- ecdf(detP_df[[sample_id]]) # Compute ecdf of the studied sample
+  
   # Plot
-ecdf_detP_plot <- ggplot(detP_df, aes(.data[[sample_id]])) + stat_ecdf(geom = "step")+
+  ecdf_detP_plot <- ggplot(detP_df, aes(.data[[sample_id]])) + stat_ecdf(geom = "step")+
     geom_vline(xintercept = 0.05, linetype = "dashed", color = "red") +
     annotate(
       "text",
@@ -94,6 +103,7 @@ ecdf_detP_plot <- ggplot(detP_df, aes(.data[[sample_id]])) + stat_ecdf(geom = "s
     labs(title = "Detection Rate", y = "ECDF", x="Detection p-values")+
     theme_minimal() + 
     theme(plot.title = element_text(size=11, face="bold", vjust = 0.5, hjust = 0.5))
+}
   
 ### --- Quality metrics BeadArray
 table_res_t <- database %>% select(-c(Sample, DetectionRate, Log2MethIntensity, Log2UnmethIntensity))
@@ -179,49 +189,60 @@ p <-ggplot(df_long, aes(x = value, y = metric)) +
   
   
 ### --- Plot beta
-# Compute beta 
-beta = as.data.frame(meth_QC %>% detectionP %>% mask(0.01) %>% correct_dye_bias %>% dont_normalize)
 
-# Create dataframe manifest info
-reduced_manifest <- meth_QC[["manifest"]] %>%
-  select(ilmn_id, probe_design)
+# Check how many probes are completely missing (M + U)
+if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
+  beta_plot <- ggplot() +
+    annotate("text", x = 0, y = 0, label = "Too low quality to display \n beta value distribution", size = 5, hjust = 0.5, col="red") +
+    xlim(-1, 1) + ylim(-1, 1) +
+    theme_void()
   
-# To join df
-beta[["ilmn_id"]] <- rownames(beta)
+} else {
   
-# Add probe type annotations
-beta <- beta %>%
-  left_join(reduced_manifest, by = "ilmn_id") %>%
-  mutate(Type = probe_design) %>%
-  select(-probe_design)
+  # Compute beta 
+  beta = as.data.frame(meth_QC %>% detectionP %>% mask(0.01) %>% correct_dye_bias %>% dont_normalize)
   
-# Prepare data for ggplot2
-beta_long <- beta %>%
-  select(all_of(sample_id), Type) %>%
-  filter(Type %in% c("I", "II")) %>%
-  rename(Beta = all_of(sample_id)) %>%
-  drop_na() %>%
-  mutate(Type = factor(Type, levels = c("I", "II")))
-
-# Plot
-beta_plot <- ggplot(beta_long, aes(x = Beta, fill = Type, color = Type)) +
-  geom_histogram(aes(y = after_stat(density)),
-                 bins = 100,
-                 alpha = 0.4,
-                 position = "identity") +
-  # geom_density(alpha = 0.8, linewidth = 1) +
-  scale_fill_manual(values = c("I" = "gray41",
-                               "II" = "black")) +
-  scale_color_manual(values = c("I" = "gray41",
-                                "II" = "black")) +
-  labs(title = paste("Distribution per Probe Type"),
-       x = "Beta",
-       y = "Density",
-       fill = "Probe Type",
-       color = "Probe Type") +
-  theme_minimal() +
-  theme(legend.position = "top",
-        plot.title = element_text(size=11, face="bold", vjust = 0.5, hjust = 0.5))
+  # Create dataframe manifest info
+  reduced_manifest <- meth_QC[["manifest"]] %>%
+    select(ilmn_id, probe_design)
+  
+  # To join df
+  beta[["ilmn_id"]] <- rownames(beta)
+  
+  # Add probe type annotations
+  beta <- beta %>%
+    left_join(reduced_manifest, by = "ilmn_id") %>%
+    mutate(Type = probe_design) %>%
+    select(-probe_design)
+  
+  # Prepare data for ggplot2
+  beta_long <- beta %>%
+    select(all_of(sample_id), Type) %>%
+    filter(Type %in% c("I", "II")) %>%
+    rename(Beta = all_of(sample_id)) %>%
+    drop_na() %>%
+    mutate(Type = factor(Type, levels = c("I", "II")))
+  
+  # Plot
+  beta_plot <- ggplot(beta_long, aes(x = Beta, fill = Type, color = Type)) +
+    geom_histogram(aes(y = after_stat(density)),
+                   bins = 100,
+                   alpha = 0.4,
+                   position = "identity") +
+    # geom_density(alpha = 0.8, linewidth = 1) +
+    scale_fill_manual(values = c("I" = "gray41",
+                                 "II" = "black")) +
+    scale_color_manual(values = c("I" = "gray41",
+                                  "II" = "black")) +
+    labs(title = paste("Distribution per Probe Type"),
+         x = "Beta",
+         y = "Density",
+         fill = "Probe Type",
+         color = "Probe Type") +
+    theme_minimal() +
+    theme(legend.position = "top",
+          plot.title = element_text(size=11, face="bold", vjust = 0.5, hjust = 0.5))
+}
 
 ### --- Create summary table / sample
 
@@ -231,13 +252,14 @@ qc_sample_df <- qc_df %>%
 qc_sample_df <- as.data.frame(t(qc_sample_df))
 colnames(qc_sample_df) <- "Value"
 qc_sample_df <- qc_sample_df[-c(1,2), , drop=F]
+qc_sample_df[["Value"]][qc_sample_df[["Value"]] == Inf] <- NA
 qc_sample_df[["Cutoff"]] <- as.numeric(c(0.95, 8, 8, 0, 5,5,5,5,1,1,1,1,1,1,1,1,1,1,1,1,1,1,5,5))
 qc_sample_df[["Status"]] <- ifelse(as.numeric(qc_sample_df[["Value"]]) > as.numeric(qc_sample_df[["Cutoff"]]), "pass", "fail")
 qc_sample_df[["Value"]] <- round(as.numeric(qc_sample_df[["Value"]]), 3)
 
 # Color according pass/fail status
 row_fill <- case_when(
-  qc_sample_df[["Status"]] == "fail" ~ "red2",
+  qc_sample_df[["Status"]] %in% c("fail", NA) ~ "red2",
   qc_sample_df[["Status"]] == "pass"  ~ "gray95")
 
 # Create the theme
@@ -248,18 +270,36 @@ custom_theme <- ttheme_default(
 )
 
 table_plot <- tableGrob(qc_sample_df, theme = custom_theme) # Convert to a graphic object for it to be ploted
+
+### --- Create message bottom 
+
+# Check how many probes are completely missing (M + U)
+if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
+  caption <- "Warning: Quality control checks did not meet the required parameters."
+  col_caption <- "red"
+  annotation <- ggplot() +
+    annotate("text", x = 0, y = 0, label = "Warning: Quality control checks did not meet the required parameters.", size = 5, hjust = 0.5, col="red", fontface = "bold") +
+    xlim(-1, 1) + ylim(-1, 1) +
+    theme_void()
+} else {
+  caption <- "On the left, the figure shows 21 quality metrics derived from the control probes on the Illumina Methylation Arrays. \n Red dots indicate the values for the analyzed sample, while the surrounding distributions reveal the variability observed in our database. \n Red vertical lines mark the recommended thresholds. Overall array quality is assessed using three primary criteria: \n (1) the proportion of CpG probes with a detection p-value below 0.05, \n (2) the log2 median intensity of methylated signal, \n (3) the log2 median intensity of unmethylated signal. \n A sample is considered acceptable for methylation classification when all three of these benchmarks meet or exceed their thresholds. \n Although slight deviations in other quality metrics may not impact classification accuracy, they might point to issues during laboratory protocols, \n hence, simultaneous failures in multiple metrics should be investigated further."
+  col_caption <- "black"
+  annotation <- NULL
+}
   
 ### --- Create plot/ QC Report
-final_plot <- (p|(log2_un_meth_intensities_plot/ecdf_detP_plot/beta_plot)|table_plot) + plot_layout(widths = c(1, 0.9, 1.1)) + 
+final_plot <- (annotation / (p|(log2_un_meth_intensities_plot/ecdf_detP_plot/beta_plot)|table_plot)) + plot_layout(widths = c(1, 0.9, 1.1), heights = c(0.2,1)) + 
   plot_annotation(
     title = paste0("QC Report - Sample ", sample_name),
     subtitle = paste0("Date:", Sys.Date(), "; Library: ewastools"),
-    theme = theme(plot.title = element_text(size = 20, face = "bold"))
+    caption = caption,  
+    theme = theme(plot.title = element_text(size = 20, face = "bold"),
+                  plot.caption = element_text(size = 15, color = col_caption, hjust = 0))
   )
   
 ### --- Generate pdf report
 output_file <- paste0(sample_name, "_qc_plot.pdf")
-pdf(output_file, width = 14, height = 8)
+pdf(output_file, width = 14, height = 10)
 print(final_plot)
 dev.off()
   

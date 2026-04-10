@@ -21,7 +21,7 @@
 #' sex_info     tsv file with columns Sample_Name, Sample_IDAT, Gender, X and Y intensities as given by compute_xy_intensities function
 #' 
 #' 
-
+#### --------------------------- ####
 
 library(dplyr)
 library(forcats)
@@ -56,15 +56,16 @@ sex_info[["match_status"]] <- ifelse(
     "Mismatch"    
   )
 )
-
+sex_info[["match_status"]][is.na(sex_info[["X"]]) ] <- "Bad quality"
+sex_info[["match_status"]][is.na(sex_info[["match_status"]]) ] <- "Undetermined"
 
 ### --- Plot sex info 
 p <- ggplot(sex_info, aes(x = X, y = Y, color = match_status, shape = predicted_sex)) +
   geom_point(size = 3) +
   # Set specific shapes: 1 is empty circle (female), 4 is 'x' (male), 2 is empty triangle (Unknown)
   scale_shape_manual(values = c("f" = 1, "m" = 4, "Unknown" = 2)) +
-  # Set colors: Black for correct, Red for mismatch
-  scale_color_manual(values = c("Correct" = "black", "Mismatch" = "red")) +
+  # Set colors: Black for correct, Red for mismatch and orange for undetermined
+  scale_color_manual(values = c("Correct" = "black", "Mismatch" = "red", "Undetermined" = "orange")) +
   labs(
     x = "Normalized X chromosome intensities",
     y = "Normalized Y chromosome intensities",
@@ -79,16 +80,16 @@ p <- ggplot(sex_info, aes(x = X, y = Y, color = match_status, shape = predicted_
 ### --- Create table with failed samples
 if (length(sex_info[["Sample_IDAT"]]) < 25) {
   failed_samples <- sex_info %>% select(c(Sample_Name, match_status))
-  failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", NA, "Correct"))
+  failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", "Undetermined", "Correct", "Bad quality"))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
   
 } else if (length(sex_info[["Sample_IDAT"]][is.na(sex_info[["match_status"]]) | sex_info[["match_status"]] == "Mismatch" ]) < 25) {
-  failed_samples <- sex_info %>% filter(match_status %in% c("Mismatch", NA)) %>%
+  failed_samples <- sex_info %>% filter(match_status %in% c("Mismatch", "Undetermined", "Bad quality")) %>%
     select(c(Sample_Name, match_status))
-  failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", NA))
+  failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", "Undetermined",  "Bad quality"))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
 } else {
-  failed_samples <- sex_info %>% filter(match_status %in% "Mismatch") %>%
+  failed_samples <- sex_info %>% filter(match_status %in% "Mismatch", "Bad quality") %>%
     select(c(Sample_Name, match_status))
 }
 
@@ -96,7 +97,8 @@ if (length(sex_info[["Sample_IDAT"]]) < 25) {
 row_fill <- case_when(
   failed_samples[["match_status"]] == "Mismatch" ~ "red2",
   failed_samples[["match_status"]] == "Correct"  ~ "palegreen2",
-  is.na(failed_samples[["match_status"]])         ~ "tan1",
+  failed_samples[["match_status"]] == "Undetermined" ~ "tan1",
+  failed_samples[["match_status"]] == "Bad quality" ~ "indianred2",
 )
 
 # Create the theme

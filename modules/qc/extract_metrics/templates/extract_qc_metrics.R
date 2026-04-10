@@ -74,6 +74,8 @@ sample_name <- "${sample_id}"
 
 ### --- QC metrics
 
+# Throw an error if bad quality samples
+
 QC <- control_metrics(meth_QC)
 table_res <- c()
 for(i in 1:length(QC)){
@@ -100,20 +102,40 @@ Log2UnmethIntensity_ewas   <- round(log2(matrixStats::colMedians(meth_QC[["U"]] 
   
 names(Log2MethIntensity_ewas) <- meth_QC[["meta"]][["sample_id"]]  # Name the intensities according to their sample of origin
 names(Log2UnmethIntensity_ewas) <- meth_QC[["meta"]][["sample_id"]]
-  
-# DetectionP computation
-detP_ewas <- meth_QC %>% ewastools::detectionP()
 
-# Create summary dataframe
-main_qc_df <- data.frame(
-  Sample_Name = sample_name,
-  Sample = names(Log2MethIntensity_ewas),
-  DetectionRate = round(colMeans(detP_ewas[["detP"]] < 0.05, na.rm=TRUE), 4),
-  Log2MethIntensity = Log2MethIntensity_ewas,
-  Log2UnmethIntensity = Log2UnmethIntensity_ewas,
-  check.names = FALSE
-) |>
-  dplyr::left_join(table_res_t, by = "Sample")
+# Check how many probes are completely missing (M + U)
+if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
+  
+  # DetectionP computation
+  detP_ewas <- NA
+  
+  # Create summary dataframe
+  main_qc_df <- data.frame(
+    Sample_Name = sample_name,
+    Sample = names(Log2MethIntensity_ewas),
+    DetectionRate = NA,
+    Log2MethIntensity = Log2MethIntensity_ewas,
+    Log2UnmethIntensity = Log2UnmethIntensity_ewas,
+    check.names = FALSE
+  ) |>
+    dplyr::left_join(table_res_t, by = "Sample")
+  
+} else{
+  # DetectionP computation
+  detP_ewas <- meth_QC %>% ewastools::detectionP()
+  
+  # Create summary dataframe
+  main_qc_df <- data.frame(
+    Sample_Name = sample_name,
+    Sample = names(Log2MethIntensity_ewas),
+    DetectionRate = round(colMeans(detP_ewas[["detP"]] < 0.05, na.rm=TRUE), 4),
+    Log2MethIntensity = Log2MethIntensity_ewas,
+    Log2UnmethIntensity = Log2UnmethIntensity_ewas,
+    check.names = FALSE
+  ) |>
+    dplyr::left_join(table_res_t, by = "Sample")
+  
+}
 
 ### -- Export all QC metrics in a csv file
 write.table(main_qc_df, paste0(sample_name, "_qc_metrics_output.tsv"), row.names = F, sep = "\t", quote = FALSE, dec = ".")
