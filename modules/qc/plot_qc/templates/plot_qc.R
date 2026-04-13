@@ -84,19 +84,19 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
     theme_void()
   
 } else {
-  detP_ewas <- meth_QC %>% detectionP
+  detP_ewas <- meth_QC %>% detectionP.neg
   detP_df <- as.data.frame(detP_ewas[["detP"]]) # Convert to df for ggplot
   colnames(detP_df) <- meth_QC[["meta"]][["sample_id"]]
   ecdf_P <- ecdf(detP_df[[sample_id]]) # Compute ecdf of the studied sample
   
   # Plot
-  ecdf_detP_plot <- ggplot(detP_df, aes(.data[[sample_id]])) + stat_ecdf(geom = "step")+
+  ecdf_detP_plot <- ggplot(10^(detP_df), aes(.data[[sample_id]])) + stat_ecdf(geom = "step")+
     geom_vline(xintercept = 0.05, linetype = "dashed", color = "red") +
     annotate(
       "text",
       x = 0.05, 
       y = 0.05,         
-      label = paste0("DetectionP < 0.05 : ", round(ecdf_P(0.05), 3)),
+      label = paste0("DetectionP < 0.05 : ", round(ecdf_P(log10(0.05)), 3)),
       color = "red",
       hjust = -0.1
     ) +
@@ -200,7 +200,7 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
 } else {
   
   # Compute beta 
-  beta = as.data.frame(meth_QC %>% detectionP %>% mask(0.01) %>% correct_dye_bias %>% dont_normalize)
+  beta = as.data.frame(meth_QC %>% detectionP.neg %>% mask(0.05) %>% correct_dye_bias %>% dont_normalize)
   
   # Create dataframe manifest info
   reduced_manifest <- meth_QC[["manifest"]] %>%
