@@ -32,7 +32,19 @@ library(tidyr)
 library(stringr)
 library(ewastools)
 
-sample_info_df <- read.csv("${sample_sheet}", sep = ",", skip = 7)
+#sample_info_df <- read.csv("${sample_sheet}", sep = ",", skip = 7)
+
+sample_sheet <- "${sample_sheet}"
+
+# Store all sample sheet lines
+lines <- suppressWarnings(readLines(sample_sheet))
+
+# Find the index of the row containing "Sample_Name"
+header_index <- grep("^Sample_Name", lines)[1]
+
+# Read sample sheet file
+sample_info_df <- suppressWarnings(read.csv(sample_sheet, skip = header_index - 1, header = TRUE))
+
 meth_QC <- readRDS("${meth_rds}")
 sample_name <- "${sample_id}"
 

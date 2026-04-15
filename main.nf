@@ -4,7 +4,7 @@
 nextflow.enable.dsl=2
 
 // The container used to run the script
-params.container = "MethylHome_QC-v0.1_20260322-144237.sif"
+//params.container = "MethylHome_QC-v0.1_20260322-144237.sif"
 
 // The default values for all parameters
 params.output = ""
@@ -23,7 +23,7 @@ include { merge_qc_reports }              from "./modules/qc/merge_qc_reports"
 
 workflow {
 
-    container = params.container
+    //container = params.container
 
     // Raise an error if the expected parameters were not found
     if (!params.output){error "Must provide parameter 'output'"}
@@ -31,23 +31,23 @@ workflow {
     // Raise an error if the sample sheet file can't be found
     sample_sheet = file("${params.sample_sheet}", checkIfExists: true)
 
-    // Read first line to check if there is a header
-    first_line = Channel.fromPath(sample_sheet)
-                    .splitCsv()
-                    .map { row -> row[0] }
-                    .first()
+    // Read all lines
+    lines = sample_sheet.readLines()
 
-    if (first_line.contains('[Header]')){
-        // Create channel with all samples
-        samples_ch = Channel.fromPath(sample_sheet)
-                            .splitCsv(header : true, skip: 7)
-                            .map { row -> tuple(row.Sample_Name, file("${row.file_path}_Grn.idat"),file("${row.file_path}_Red.idat"))}
-    } else {
-        // Create channel with all samples
-        samples_ch = Channel.fromPath(sample_sheet)
-                            .splitCsv(header : true)
-                            .map { row -> tuple(row.Sample_Name, file("${row.file_path}_Grn.idat"),file("${row.file_path}_Red.idat"))}
+    // Find the index of the row containing "Sample_Name"
+    header_index = lines.findIndexOf { it.split(',').contains('Sample_Name') }
+
+    // Check if file contains Sample_Name
+    if (header_index == -1) {
+        error "Column 'Sample_Name' not found in ${params.sample_sheet}"
     }
+
+    // Create channel with all samples using dynamic skip
+    samples_ch = Channel.fromPath(sample_sheet)
+        .splitCsv(header: true, skip: header_index)
+        .map { row -> tuple(row.Sample_Name,file("${row.file_path}_Grn.idat"),file("${row.file_path}_Red.idat")) }
+
+    samples_ch.view()
 
     // Read idats 
     load_idats(samples_ch)
@@ -67,7 +67,7 @@ workflow {
     all_sex_info_tsv = merge_xy_intensities(all_sex_info)
     control_sex(all_sex_info_tsv)
 
-    all_qc_tsvs = qc_results.map { sample_id, tsv_file -> tsv_file }  // extract only the CSV file
+    all_qc_tsvs = qc_results.map { sample_id, tsv_file -> tsv_file }  // extract only the TSV file
                             .collect()
 
     merge_qc_metrics(all_qc_tsvs)
