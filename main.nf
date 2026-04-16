@@ -49,6 +49,14 @@ workflow {
 
     samples_ch.view()
 
+    names_ch = samples_ch.map { it[0] }.collect()
+
+    names_ch.subscribe { names ->
+        if (names.size() != names.unique().size()) {
+            error "Please enter unique names in ${params.sample_sheet}"
+        }
+    }
+
     // Read idats 
     load_idats(samples_ch)
 
