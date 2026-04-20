@@ -1,0 +1,58 @@
+
+flowchart TB
+ subgraph legend["legend"]
+        R["INPUT"]
+        S["Paralellised process"]
+        T["Global process"]
+        U["Per sample OUTPUT"]
+        V["Global OUTPUT"]
+  end
+    B["Sample sheet"] -.-> D["load IDATs"] & I["compute XY intensities"]
+    C["Database"] -.-> F["plot QC metrics"]
+    D --> E["extract qc metrics"] & I
+    E --> F & G["merge QC metrics"]
+    I --> J["control sex"]
+    E -.-> K["QC metrics (TSV)"]
+    F -.-> L["QC report (PDF)"]
+    G -.-> M["global metrics (TSV)"]
+    J -.-> O["sex control report (PDF)"] & Q["sex control (TSV)"]
+    I -.-> P["XY intensities (TSV)"]
+
+    R@{ shape: lean-r}
+    S@{ shape: processes}
+    T@{ shape: rect}
+    U@{ shape: docs}
+    V@{ shape: doc}
+    B@{ shape: lean-r}
+    D@{ shape: processes}
+    C@{ shape: lean-r}
+    F@{ shape: processes}
+    E@{ shape: processes}
+    I@{ shape: processes}
+    G@{ shape: rect}
+    J@{ shape: rect}
+    K@{ shape: docs}
+    L@{ shape: docs}
+    M@{ shape: doc}
+    O@{ shape: doc}
+    Q@{ shape: doc}
+    P@{ shape: docs}
+    style R color:#0e1609, fill:#cca9dd, stroke:#0e1609
+    style S color:#0e1609, fill:#b0f2b6 , stroke:#0e1609
+    style T color:#0e1609, fill:#B3EBF2, stroke:#0e1609
+    style U color:#0e1609, fill:#b0f2b6 , stroke:#0e1609
+    style V color:#0e1609, fill:#B3EBF2, stroke:#0e1609
+    style B color:#0e1609, fill:#cca9dd, stroke:#0e1609
+    style D color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+    style C color:#0e1609, fill:#cca9dd, stroke:#0e1609
+    style F color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+    style E color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+    style I color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+    style G color:#0e1609, fill:#B3EBF2, stroke:#0e1609
+    style J color:#0e1609, fill:#B3EBF2, stroke:#0e1609
+    style K color:#0e1609, fill:#b0f2b6 , stroke:#0e1609
+    style L color:#0e1609, fill:#b0f2b6 , stroke:#0e1609
+    style M color:#0e1609, fill:#B3EBF2, stroke:#0e1609
+    style O color:#0e1609, fill:#B3EBF2, stroke:#0e1609
+    style Q color:#0e1609, fill:#B3EBF2, stroke:#0e1609
+    style P color:#0e1609, fill:#b0f2b6 , stroke:#0e1609
