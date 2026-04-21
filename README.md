@@ -46,7 +46,12 @@ Directory where results will be written.
 Test files are available in this repository:
 * IDAT test files (data/test/),
 * Sample sheet corresponding to input files (data/MethylationEPIC_Sample_Sheet_test_data.csv),
-* A QC reference files for ploting metrics (data/qc_metrics_output_db.tsv).
+* A QC reference file for ploting metrics (data/qc_metrics_output_db.tsv).
+
+If you want to use your own reference dataset, you can build the reference file for ploting metrics using the following command: 
+```bash
+singularity exec -B $(pwd) library://judrnd/hcl/methylhome:latest Rscript resources/compute_database_qc_metrics.R data/test/ .
+```
 
 ## Output files 
 
