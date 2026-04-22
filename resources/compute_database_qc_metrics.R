@@ -108,7 +108,7 @@ table_res <- as.data.frame(table_res)
 
 table_res_t <- t(table_res) # Transpose table to access more easily Metrics values
 colnames(table_res_t) <- gsub(" ", "_", x=table_res[["Metrique"]]) # To prevent bad naming, e.g. using spaces
-colnames(table_res_t) <- gsub('\\\\(Bkg)', "Bkg.", x = colnames(table_res_t)) # Better name for plotting (doesn't like "()")
+colnames(table_res_t) <- gsub('\\(Bkg)', "Bkg.", x = colnames(table_res_t)) # Better name for plotting (doesn't like "()")
 table_res_t <- as.data.frame(table_res_t[-1,]) # get rid of unwanted values
 table_res_t <- as.data.frame(table_res_t[-1,])
 table_res_t[["Sample"]] <- rownames(table_res_t)
