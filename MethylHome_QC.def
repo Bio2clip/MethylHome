@@ -21,6 +21,7 @@ From: ubuntu:24.04
     version_Matrix="1.7-4"
     version_survival="3.8-6"
     version_forcats="1.0.1"
+    version_ade4="1.7-24"
 
     # Ubuntu packages
     apt-get -y update
@@ -111,6 +112,26 @@ From: ubuntu:24.04
     # R forcats package 
     R -e "remotes::install_version('forcats', version='${version_forcats}', repos='https://cloud.r-project.org')"
 
+    # R ade4 package 
+    R -e "remotes::install_version('ade4', version='${version_ade4}', repos='https://cloud.r-project.org')"
+
+    # R IlluminaHumanMethylationEPICmanifest package 
+    R -e "BiocManager::install('IlluminaHumanMethylationEPICmanifest', ask=FALSE, update=FALSE, version = '${version_minfi_bioc}')"
+
+    # R IlluminaHumanMethylation450kmanifest package 
+    R -e "BiocManager::install('IlluminaHumanMethylation450kmanifest', ask=FALSE, update=FALSE, version = '${version_minfi_bioc}')"
+
+    # R RFpurify package 
+    R -e "remotes::install_github('mwsill/RFpurify')"
+
+    # R mgmtstp27 package
+    wget https://github.com/badozor/mgmtstp27/raw/refs/heads/master/trunk/Rpackage/mgmtstp27_0.8.tar.gz -O mgmtstp27_0.8.tar.gz
+
+    # Install the package into the R environment
+    R CMD INSTALL mgmtstp27_0.8.tar.gz
+
+    # Clean up the tar to keep the image small
+    rm mgmtstp27_0.8.tar.gz
 
     # Cleanup
     apt-get remove -y \
@@ -122,8 +143,8 @@ From: ubuntu:24.04
 	apt-get -y auto-remove
 
 %help
-	This container is not meant to be used directly, but through Nextflow pipeline """ INSERER LE LIEN """
+	This container is not meant to be used directly, but through Nextflow pipeline """ https://github.com/Bio2clip/MethylHome.git """
 
 %labels
     Author Julie Durand
-    Version 0.0.1
+    Version 0.2.2

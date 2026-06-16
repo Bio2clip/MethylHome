@@ -19,12 +19,12 @@
 #' 
 #' @Usage 
 #' 
-#' plot_qc(qc_tsv, database, meth_rds, sample_id)
+#' plot_qc(qc_tsv, qc_ref_set, meth_rds, sample_id)
 #' 
 #' @Arguments 
 #' 
 #' qc_tsv          tsv file with qc metrics as returned by extract_qc_metrics
-#' database        tsv file consisting of the output of extract_qc_metrics for the reference idat files
+#' qc_ref_set      tsv file consisting of the output of extract_qc_metrics for the reference idat files
 #' meth_rds        R data file as returned by load_idats
 #' sample_id       Sample name
 #' 
@@ -46,20 +46,19 @@ library(gridExtra)
 qc_df <- read.csv("${qc_tsv}", sep = "\t")
 colnames(qc_df) <- gsub("_", " ", x=colnames(qc_df))
 
-### --- Retrieve database
-database <- read.csv("${database}", sep = "\t")
-colnames(database) <- gsub("_", " ", x=colnames(database))
+### --- Retrieve reference dataset
+qc_ref_set <- read.csv("${qc_ref_set}", sep = "\t")
+colnames(qc_ref_set) <- gsub("_", " ", x=colnames(qc_ref_set))
 
 ### --- Retrieve idats object
 meth_QC <- readRDS("${meth_rds}")
-
-sample_id <- qc_df[["Sample"]]
-rownames(qc_df) <- qc_df[["Sample"]]
+sample_id <- qc_df[["Sample IDAT"]]
+rownames(qc_df) <- qc_df[["Sample IDAT"]]
 sample_name <- "${sample_id}"
   
 ### --- Log2Meth and unmeth intensities quality control
   
-log2_un_meth_intensities_plot <- ggplot(database, aes(x = Log2UnmethIntensity, y = Log2MethIntensity)) +
+log2_un_meth_intensities_plot <- ggplot(qc_ref_set, aes(x = Log2UnmethIntensity, y = Log2MethIntensity)) +
     geom_point(alpha = 0.7) + 
     geom_vline(xintercept = 8, linetype = "dashed", color = "red") + # vertical line to x=8
     geom_hline(yintercept = 8, linetype = "dashed", color = "red") + # horizontal line to y=8
@@ -84,11 +83,11 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
     theme_void()
   
 } else {
+
   detP_ewas <- meth_QC %>% detectionP.neg
   detP_df <- as.data.frame(detP_ewas[["detP"]]) # Convert to df for ggplot
   colnames(detP_df) <- meth_QC[["meta"]][["sample_id"]]
   ecdf_P <- ecdf(detP_df[[sample_id]]) # Compute ecdf of the studied sample
-  
   # Plot
   ecdf_detP_plot <- ggplot(10^(detP_df), aes(.data[[sample_id]])) + stat_ecdf(geom = "step")+
     geom_vline(xintercept = 0.05, linetype = "dashed", color = "red") +
@@ -106,7 +105,7 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
 }
   
 ### --- Quality metrics BeadArray
-table_res_t <- database %>% select(-c(Sample, DetectionRate, Log2MethIntensity, Log2UnmethIntensity))
+table_res_t <- qc_ref_set %>% select(-c(Sample, DetectionRate, Log2MethIntensity, Log2UnmethIntensity))
 
 # Reference dataset for density distribution
 df_long <- table_res_t %>%
@@ -128,7 +127,7 @@ df_long <- table_res_t %>%
 
 df_threshold <- data.frame(
     metric = colnames(table_res_t),
-    threshold = as.numeric(c(0, 5,5,5,5,1,1,1,1,1,1,1,1,1,1,1,1,1,1,5,5))
+    threshold = as.numeric(c(0, 5,5,5,5,1,1,1,1,1,1,1,1,1,1,1,1,1,1,5,5)) # BeadArray defined thresholds
   ) %>%
     left_join(
       df_long %>% group_by(metric)) %>% select(-c(SampleID, value))
@@ -138,10 +137,8 @@ df_threshold <- unique(df_threshold)
 # Create Sample dataframe
 df_sample <- as.data.frame(t(qc_df %>% select(-c(DetectionRate, Log2MethIntensity, Log2UnmethIntensity)))) 
 colnames(df_sample) <- as.character(df_sample[2,])
-df_sample <-  df_sample[-c(1,2), , drop = FALSE] %>% select(all_of(sample_id))
+df_sample <-  df_sample[-c(1,2), , drop = FALSE] %>% dplyr::select(all_of(sample_id))
 
-df_sample <- df_sample %>%
-  dplyr::select(all_of(sample_id))
 colnames(df_sample) <- "value"
 df_sample[["SampleID"]] <- sample_id
 df_sample[["metric"]] <- rownames(df_sample)
@@ -247,7 +244,7 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
 ### --- Create summary table / sample
 
 qc_sample_df <- qc_df %>%
-  filter(Sample %in% sample_id)
+  filter(`Sample IDAT` %in% sample_id)
 
 qc_sample_df <- as.data.frame(t(qc_sample_df))
 colnames(qc_sample_df) <- "Value"
@@ -282,7 +279,7 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
     xlim(-1, 1) + ylim(-1, 1) +
     theme_void()
 } else {
-  caption <- "On the left, the figure shows 21 quality metrics derived from the control probes on the Illumina Methylation Arrays. \n Red dots indicate the values for the analyzed sample, while the surrounding distributions reveal the variability observed in our database. \n Red vertical lines mark the recommended thresholds. Overall array quality is assessed using three primary criteria: \n (1) the proportion of CpG probes with a detection p-value below 0.05, \n (2) the log2 median intensity of methylated signal, \n (3) the log2 median intensity of unmethylated signal. \n A sample is considered acceptable for methylation classification when all three of these benchmarks meet or exceed their thresholds. \n Although slight deviations in other quality metrics may not impact classification accuracy, they might point to issues during laboratory protocols, \n hence, simultaneous failures in multiple metrics should be investigated further."
+  caption <- "On the left, the figure shows 21 quality metrics derived from the control probes on the Illumina Methylation Arrays. \n Red dots indicate the values for the analyzed sample, while the surrounding distributions reveal the variability observed in our reference dataset. \n Red vertical lines mark the recommended thresholds. Overall array quality is assessed using three primary criteria: \n (1) the proportion of CpG probes with a detection p-value below 0.05, \n (2) the log2 median intensity of methylated signal, \n (3) the log2 median intensity of unmethylated signal. \n A sample is considered acceptable for methylation classification when all three of these benchmarks meet or exceed their thresholds. \n Although slight deviations in other quality metrics may not impact classification accuracy, they might point to issues during laboratory protocols, \n hence, simultaneous failures in multiple metrics should be investigated further."
   col_caption <- "black"
   annotation <- NULL
 }

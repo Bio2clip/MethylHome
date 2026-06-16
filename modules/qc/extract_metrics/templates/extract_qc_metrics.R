@@ -2,10 +2,10 @@
 
 
 # ----------------------------------------------------------------------
-# Script : extract_other_qc_metrics.R
+# Script : extract_qc_metrics.R
 # Object  : Extract all QC
 # Librairies : ewastools, dplyr 
-# This script has been written using the script developped by Yvan Nicaise & Clementine Decamps, 2025-2026
+# This script has been written using the scripts developped by Yvan Nicaise & Clementine Decamps, 2025-2026
 # ----------------------------------------------------------------------
 
 #### --- DOCUMENTATION --- ####
@@ -60,7 +60,7 @@
 #' 
 #' @Note 
 #' 
-#' If we want to compute metrics as performed by 'BeadArray Controls Reporter Software' from Illumina
+#' If you want to compute metrics as performed by 'BeadArray Controls Reporter Software' from Illumina
 #' you have to give raw data before any normalization step to the function. 
 
 #### --- CODE --- ####
@@ -92,7 +92,7 @@ colnames(table_res_t) <- gsub(" ", "_", x=table_res[["Metrique"]]) # To prevent 
 colnames(table_res_t) <- gsub('\\\\(Bkg)', "Bkg.", x = colnames(table_res_t)) # Better name for plotting (doesn't like "()")
 table_res_t <- as.data.frame(table_res_t[-1,]) # get rid of unwanted values
 table_res_t <- as.data.frame(table_res_t[-1,])
-table_res_t[["Sample"]] <- rownames(table_res_t)
+table_res_t[["Sample_IDAT"]] <- rownames(table_res_t)
   
 ### --- Main QC Metrics 
   
@@ -109,13 +109,13 @@ detP_ewas <- meth_QC %>% ewastools::detectionP.neg()
 # Create summary dataframe
 main_qc_df <- data.frame(
   Sample_Name = sample_name,
-  Sample = names(Log2MethIntensity_ewas),
+  Sample_IDAT = names(Log2MethIntensity_ewas),
   DetectionRate = round(colMeans(detP_ewas[["detP"]] < log10(0.05), na.rm=TRUE), 4),
   Log2MethIntensity = Log2MethIntensity_ewas,
   Log2UnmethIntensity = Log2UnmethIntensity_ewas,
   check.names = FALSE
 ) |>
-  dplyr::left_join(table_res_t, by = "Sample")
+  dplyr::left_join(table_res_t, by = "Sample_IDAT")
 
 ### -- Export all QC metrics in a csv file
 write.table(main_qc_df, paste0(sample_name, "_qc_metrics_output.tsv"), row.names = F, sep = "\t", quote = FALSE, dec = ".")

@@ -2,31 +2,63 @@
 
 ## Description
 
-**MethylHome** is a Nextflow DSL2 pipeline for processing Illumina IDAT files, extracting quality control (QC) metrics, and generating per-sample QC reports.
+**MethylHome** is a Nextflow DSL2 pipeline designed for the analysis of Illumina methylation array data from IDAT files. Some CNV analyses (focal CNV inference and associated visualizations) require internet access and can be disabled for offline execution using `--CNV_focal FALSE`.
 
-![doc/QC_workflow.png](doc/QC_workflow.png)
+The pipeline provides:
+
+* quality control metric extraction;
+* generation of per-sample QC reports;
+* sex concordance checking based on X and Y chromosome intensities;
+* copy number variation (CNV) inference from methylation data;
+* MGMT promoter methylation status prediction;
+* tumor purity estimation.
+
+The global workflow is illustrated below.
+
+![doc/MethylHome\_workflow.png](doc/MethylHome_workflow.png)
+
+### Quality Control workflow
+
+![doc/QC\_workflow.png](doc/QC_workflow.png)
 
 ## Overview
 
-This pipeline performs the following steps:
+MethylHome performs the following analyses:
 
-1. Load IDAT files (Green/Red channels)
-2. Extract QC metrics per sample
-3. Generate per-sample QC reports (PDF format)
-4. Aggregate QC metrics into a global summary file
-5. Perform gender consistency checks (PDF report and CSV output)
+- Loading of Illumina IDAT files.
+- Extraction of QC metrics.
+- Generation of per-sample QC reports.
+- Aggregation of QC metrics across all samples.
+- Extraction of raw GenomeStudio-like control probe values.
+- Generation of cohort-level GenomeStudio-like QC plots.
+- Sex prediction based on chromosome X and Y intensities.
+- Sex concordance verification against the sample sheet.
+- CNV inference from methylation data.
+- MGMT promoter methylation status prediction.
+- Tumor purity estimation.
 
 All steps are fully parallelized, ensuring independent processing of each sample without output overlap.
 
 ## Dependencies
+
 * Nextflow (tested with versions 24.10.4 and 25.10.4)
-* Singularity (tested with version CE 3.8.0)
+* Singularity CE (tested with version 3.8.0)
+
+### Internet access
+
+An internet connection is required when focal CNV inference is enabled.
+
+The focal CNV detection workflow and the associated region-of-interest visualizations rely on external resources and therefore cannot be executed in a fully offline environment.
+
+For offline execution, focal CNV analysis can be disabled using the `--CNV_focal` parameter.
+
 
 ## Input Data
-Required inputs
 
-- **Sample sheet** (`--sample_sheet`)  
-A CSV file following the BeadArray template, with an additional column containing paths to IDAT files (without the `_{Grn|Red}.idat` suffix).
+### Required inputs
+
+#### - **Sample sheet** (`--sample_sheet`)  
+A CSV or TSV file following the BeadArray template, with an additional column containing paths to IDAT files (without the `_{Grn|Red}.idat` suffix).
 
 The minimal file should contain : 
 
@@ -34,85 +66,232 @@ The minimal file should contain :
 | ----- | ----- | ----- | ----- |
 | GSM8461134 | GSM8461134_207716530108_R01C01 | M | path/to/GSM8461134_207716530108_R01C01 |
 
-For the gender column, possibilities are : 
-`F`, `M` or `U`.
 
-- **Database file** (`--database`)  
-Reference database used for QC visualization.
+Where:
 
-- **Output directory** (`--output`)  
-Directory where results will be written.
+* **Sample_Name**: unique sample identifier.
+* **Sample_IDAT**: Sentrix ID and Sentrix Position combination.
+* **Gender**: `M`, `F` or `U`.
+* **file_path**: path to IDAT files without the `_Grn.idat` or `_Red.idat` suffix.
 
-Test files are available in this repository:
-* IDAT test files (data/test/),
-* Sample sheet corresponding to input files (data/MethylationEPIC_Sample_Sheet_test_data.csv),
-* A QC reference file for ploting metrics (data/qc_metrics_output_db.tsv).
+**Important**: if the sample sheet contains empty lines before the header line (`Sample_Name`), the pipeline may not parse the file correctly. Any lines preceding the header should therefore contain at least one character.
 
-If you want to use your own reference dataset, you can build the reference file for ploting metrics using the following command: 
+#### - **Output directory** (`--output`)
+
+Directory where all pipeline results will be written.
+
+### Optional inputs
+
+#### QC reference dataset (`--qc_ref_set`)
+
+Reference QC dataset used to visualize sample metrics relative to a reference population.
+
+#### Male CNV reference (`--ref_m`)
+
+`.Rdata` object used as reference for CNV normalization of male samples.
+
+#### Female CNV reference (`--ref_f`)
+
+`.Rdata` object used as reference for CNV normalization of female samples.
+
+#### Mixed CNV reference (`--ref_mf`)
+
+`.Rdata` object used as reference for CNV normalization of unknown sex samples.
+
+#### CNV annotation (`--anno`)
+
+`.Rdata` object containing genomic binning information used by the CNV workflow.
+
+#### Dummy IDAT files (`--file_data`)
+
+Additional IDAT file required to work around the current limitation of *conumee2* when processing EPICv2 samples individually.
+
+#### Focal CNV detection (`--CNV_focal`)
+
+`TRUE` or `FALSE`.
+
+Determines whether focal CNV inference and the associated region-of-interest visualizations are generated by the pipeline.
+
+Since these analyses require an internet connection, this parameter must be set to `FALSE` when running the pipeline in an offline environment.
+
+Default value:
+
+```text
+TRUE
+```
+
+#### Publish mode (`--publish`)
+
+Nextflow publish mode.
+
+Available values:
+
+* `copy`
+* `copyNoFollow`
+* `link`
+* `move`
+* `rellink`
+* `symlink`
+
+Default: `copy`
+
+## Test Data
+
+Example files are available in the repository:
+
+* test IDAT files (`data/test/`);
+* example sample sheet;
+* QC reference dataset.
+
+A QC reference dataset can be generated from a set of samples using:
+
 ```bash
-singularity exec -B $(pwd) library://judrnd/hcl/methylhome:latest Rscript resources/compute_database_qc_metrics.R data/test/ .
+singularity exec -B $(pwd) \
+    library://judrnd/hcl/methylhome:latest \
+    Rscript resources/compute_dataset_qc_metrics.R data/test/ .
 ```
 
-## Output files 
+## Modules
 
-All results are written to the directory specified via `--output`. The pipeline generates a structured set of summary files, per-sample metrics, and graphical reports as illustrated below:
+### Quality Control
+
+The QC module computes quality metrics directly from raw Illumina methylation array data using the `ewastools` package.
+
+The module includes:
+
+* BeadArray control metrics;
+* methylated and unmethylated signal intensities;
+* detection p-value distributions;
+* beta-value distributions;
+* GenomeStudio-like control probe values;
+* comparison with a reference cohort.
+
+Outputs include:
+
+* per-sample QC reports;
+* per-sample QC metrics;
+* aggregated QC tables;
+* GenomeStudio-like cohort reports.
+
+### Sex Concordance Control
+
+Sex prediction is performed using chromosome X and Y signal intensities.
+
+Predicted sex is compared with the sex provided in the sample sheet.
+
+Outputs include:
+
+* per-sample X/Y intensities;
+* cohort-level sex concordance report;
+* aggregated prediction table.
+
+## CNV Analysis
+
+CNV inference is performed using the R package `conumee2`.
+
+The workflow includes:
+
+* tangent normalization against reference samples;
+* genomic binning;
+* segmentation;
+* focal CNV detection;
+* generation of CNV visualizations and summary files.
+
+Separate male and female reference datasets are used to reduce biases associated with sex chromosomes.
+
+For EPICv2 arrays, an additional dummy sample is included during processing to work around current `conumee2` limitations.
+
+Focal CNV detection and the associated region-of-interest visualizations can be disabled using `--CNV_focal FALSE`, allowing the pipeline to be executed without internet access.
+
+### MGMT Methylation Status
+
+MGMT promoter methylation status is predicted using the `mgmtstp27` package.
+
+The prediction is based on the methylation levels of probes:
+
+* cg12434587
+* cg12981137
+
+No normalization is applied before MGMT prediction.
+
+The module generates a PDF report containing:
+
+* predicted MGMT status;
+* confidence intervals associated with the prediction.
+
+### Tumor Purity Estimation
+
+Tumor purity is estimated using the `RFpurify` package.
+
+Two independent models are applied:
+
+* `absolute`
+* `estimate`
+
+Since RFpurify was originally trained on HumanMethylation450K arrays, probe identifiers are adapted when EPICv2 arrays are analyzed.
+
+For probes required by the models but absent from EPICv2 arrays, random values are generated and the prediction procedure is repeated 100 times.
+
+Reported results correspond to:
+
+* the mean prediction;
+* the associated confidence interval.
+
+## Output Structure
+
+Results are organized by module within the output directory.
+
+Example QC structure:
+
+```text
+output/
+├── cnv
+│   ├── all_CNV_detail.txt
+│   ├── all_CNV_metrics.txt
+│   ├── all_CNV_segment.seg
+│   ├── plots
+│   │   ├──`Sample_Name`_`Sample_IDAT`_AllChr.png
+│   │   ├──`Sample_Name`_`Sample_IDAT`_Genes.png
+│   │   ├── chr
+│   │   │   └──`Sample_Name`_`Sample_IDAT`_chr*.png
+│   │   └── gene
+│   │   │   └──`Sample_Name`_`Sample_IDAT`_`Region`_Gene.png
+│   └── tables
+│       ├── `Sample_Name`_`Sample_IDAT`_CNVbins.igv
+│       ├── `Sample_Name`_`Sample_IDAT`_CNVdetail.txt
+│       ├── `Sample_Name`_`Sample_IDAT`_CNVprobes.igv
+│       ├── `Sample_Name`_`Sample_IDAT`_CNVsegments.seg
+│       └── `Sample_Name`_`Sample_IDAT`_metrics.txt  
+├── mgmt
+│   └── MGMT_plot_minfi_`Sample_Name`.pdf
+├── qc
+│   ├── all_predicted_sex.tsv
+│   ├── all_qc_metrics.tsv
+│   ├── all_qc_metrics_gs.tsv
+│   ├── control_sex_report.pdf
+│   ├── genome_studio_like_plot.pdf
+│   ├── sample_metrics
+│   │   └── `Sample_Name`_qc_metrics_output.tsv
+│   ├── sample_plots
+│   │   └── `Sample_Name`_qc_plot.pdf
+│   └── sample_sex
+│       └── `Sample_Name`_xy_intensities.tsv
+└── tumor_purity
+    └── `Sample_Name`_tumor_purity.pdf
 ```
-.
-└── qc
-├── all_predicted_sex.tsv
-├── all_qc_metrics.tsv
-├── control_sex_report.pdf
-├── sample_metrics
-│ └── <sample_name>_qc_metrics_output.tsv
-├── sample_plots
-│ └──<sample_name>_qc_plot.pdf
-└── sample_sex
-└── <sample_name>_xy_intensities.tsv
-```
 
-### Global QC outputs (`qc/`)
+### Output formats
 
-- **`all_predicted_sex.tsv`**  
-  Summary table containing sex prediction inferred from methylation profiles for all samples.  
-  Includes a concordance check against the `Gender` column provided in the sample sheet.
+All tabular outputs:
 
-- **`all_qc_metrics.tsv`**  
-  Aggregated table of all computed QC metrics across samples.
+* use tab-separated values (`.tsv`);
+* use `.` as decimal separator;
+* include a header row.
 
-- **`control_sex_report.pdf`**  
-  Global diagnostic plot displaying X and Y chromosome methylation intensities across all samples.  
-  Useful for identifying outliers and verifying sex annotation consistency.
+## Singularity Container
 
-### Per-sample QC metrics (`qc/sample_metrics/`)
+### Pre-built container
 
-- One file per sample:
-  - **`<sample_name>_qc_metrics_output.tsv`**  
-    Contains the full set of QC metrics computed for the given sample. 
-
-### Per-sample QC reports (`qc/sample_plots/`)
-
-- One PDF report per sample:
-  - **`<sample_name>_qc_plot.pdf`**  
-    Visual summary of QC metrics, enabling rapid identification of potential quality issues.
-
-### Sex-specific intensities (`qc/sample_sex/`)
-
-- One file per sample:
-  - **`<sample_name>_xy_intensities.tsv`**  
-    Reports methylation signal intensities for X and Y chromosomes.  
-    These values are used internally for sex prediction and can also support external validation.
-
-### File format conventions
-
-All output tables follow standard “Anglo-Saxon” format:
-
-- Tab-delimited format (`.tsv`)
-- Decimal separator: `.` (dot)
-- Header line included in all tables
-
-## Singularity container
-
-### Pre-build container
 Containers are available on Sylabs' [Singularity Container Services](https://cloud.sylabs.io/). They can be pulled manually or automatically by Nextflow using the `library://...` syntax. 
 
 Repository URL :
@@ -122,39 +301,65 @@ Available tags :
 * `metyhylhome:0.1`
 * `methylhome:latest`
 
-### Building the container 
+### Build from source
 
-The container recipe is part of MethylHome's source code, it can be built with :
 ```bash
 sudo singularity build MethylHome_latest.sif MethylHome_QC.def
 ```
 
-The image can also be directly pulled from internet : 
+### Pull image
 
 ```bash
-singularity pull --arch amd64 library://judrnd/hcl/methylhome:latest
+singularity pull --arch amd64 \
+    library://judrnd/hcl/methylhome:latest
 ```
 
 ## Usage
 
+Before running CNV analysis for the first time, you need to generate the required reference objects.
+
+### 1. Download IDAT files
+
+Download the IDAT files from the GEO accession:
+[GSE306226](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE306226)
+
+### 2. Create CNV reference objects
+
+Run the following script to generate the reference objects:
+
 ```bash
-# Sample_sheet and database
-sample_sheet="$(pwd)/data/MethylationEPIC_Sample_Sheet_test_data.csv"
-database="$(pwd)/data/qc_metrics_output_db.tsv"
-
-# Define output folder
-out="$(pwd)/output"
-
-# Launch pipeline
-nextflow run main.nf -with-singularity "library://judrnd/hcl/methylhome:latest" \
-                    --sample_sheet "$sample_sheet" \
-                    --database "$database" \
-                    --output "$out" 
-
+singularity exec -B $(pwd) "library://judrnd/hcl/methylhome:latest" \
+Rscript resources/create_objects_for_CNV.R <GEO_IDAT_directory> <outdir>
 ```
 
-## Acknowledgment
-Thanks to Yvan Nicaise for original QC scripts that were adapted and extended in this pipeline.
+* `<GEO_IDAT_directory>`: path to the downloaded IDAT files
+* `<outdir>`: directory where output objects will be saved. . If this is different from $(pwd), you must also pass it explicitly to Nextflow when launching the pipeline with the arguments : 
+* `ref_m`, 
+* `ref_f`, 
+* `ref_mf`,
+* `anno_epic`.
+
+### 3. Run the pipeline
+
+Once the reference objects are created, launch the pipeline with Nextflow:
+
+```bash
+sample_sheet="$(pwd)/data/MethylationEPIC_Sample_Sheet_test_data.csv"
+out="$(pwd)/output"
+
+nextflow run main.nf \
+    -with-singularity "library://judrnd/hcl/methylhome:latest" \
+    --sample_sheet "$sample_sheet" \
+    --output "$out"
+```
+
+
+## Acknowledgments
+
+Thanks to Yvan Nicaise for the original QC and CNV scripts that were adapted and extended within MethylHome.
 
 ## License
-This project is placed under MIT license (Copyright 2026).
+
+MIT License
+
+Copyright © 2026

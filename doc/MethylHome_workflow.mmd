@@ -1,0 +1,34 @@
+
+flowchart TD
+
+%%Inputs
+  %%A@{ shape: lean-r, label: Output directory} -.-> D & E
+  B@{ shape: lean-r, label: Sample sheet} -.-> D & E
+  C@{ shape: lean-r, label: qc_ref_set} -.-> E
+
+%% Processes
+  D@{ shape: rect, label: QC} 
+  E@{ shape: rect, label: Normalisation} --> F & J
+  F@{ shape: rect, label: "ß-value / M-value"} -->  I & K
+  %%G@{ shape: rect, label: Classifier} 
+  %%H@{ shape: rect, label: UMAP / t-SNE}
+  I@{ shape: rect, label: MGMT} 
+  J@{ shape: rect, label: CNV}
+  K@{ shape: rect, label: Tumor purity}
+
+
+%% Inputs
+%%style A color:#0e1609, fill:#cca9dd, stroke:#0e1609
+style B color:#0e1609, fill:#cca9dd, stroke:#0e1609
+style C color:#0e1609, fill:#cca9dd, stroke:#0e1609
+
+
+%% Processses
+style D color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+style E color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+style F color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+style I color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+%%style G color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+%%style H color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+style J color:#0e1609, fill:#b0f2b6, stroke:#0e1609
+style K color:#0e1609, fill:#b0f2b6, stroke:#0e1609

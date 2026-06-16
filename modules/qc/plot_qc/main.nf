@@ -9,7 +9,7 @@ process plot_qc {
 
     input:
     tuple val(sample_id), path(qc_tsv), path(meth_rds)   
-    path database
+    path qc_ref_set
 
     output:
     path "${sample_id}_qc_plot.pdf", emit: PDF

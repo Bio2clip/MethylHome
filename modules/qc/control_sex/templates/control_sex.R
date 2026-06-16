@@ -61,16 +61,18 @@ sex_info[["match_status"]][is.na(sex_info[["match_status"]]) ] <- "Undetermined"
 
 ### --- Plot sex info 
 p <- ggplot(sex_info, aes(x = X, y = Y, color = match_status, shape = predicted_sex)) +
-  geom_point(size = 3) +
+  geom_point(data = . %>% filter(match_status=="Correct"), size = 3) +
+  geom_point(data = . %>% filter(match_status=="Undetermined"), size = 3) +
+  geom_point(data = . %>% filter(match_status=="Mismatch"), size = 4) +
+  geom_label(aes(label=as.character(Sample_Name)), data = . %>% filter(match_status=="Mismatch"),hjust=0, vjust=0, size= 3) +
+
   # Set specific shapes: 1 is empty circle (female), 4 is 'x' (male), 2 is empty triangle (Unknown)
   scale_shape_manual(values = c("f" = 1, "m" = 4, "Unknown" = 2)) +
   # Set colors: Black for correct, Red for mismatch and orange for undetermined
-  scale_color_manual(values = c("Correct" = "black", "Mismatch" = "red", "Undetermined" = "orange")) +
+  scale_color_manual(values = c("Correct" = "grey79", "Mismatch" = "red", "Undetermined" = "grey49")) +
   labs(
     x = "Normalized X chromosome intensities",
     y = "Normalized Y chromosome intensities",
-    color = "Status",
-    shape = "Predicted Sex",
     title = "Predicted sex according to X and Y intensities and comparison with data"
   ) +
   theme_minimal() + 
@@ -83,13 +85,13 @@ if (length(sex_info[["Sample_IDAT"]]) < 25) {
   failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", "Undetermined", "Correct", "Bad quality"))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
   
-} else if (length(sex_info[["Sample_IDAT"]][is.na(sex_info[["match_status"]]) | sex_info[["match_status"]] == "Mismatch" ]) < 25) {
+} else if (length(sex_info[["Sample_IDAT"]][sex_info[["match_status"]] == "Undetermined" | sex_info[["match_status"]] == "Mismatch" ]) < 25) {
   failed_samples <- sex_info %>% filter(match_status %in% c("Mismatch", "Undetermined", "Bad quality")) %>%
     select(c(Sample_Name, match_status))
   failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", "Undetermined",  "Bad quality"))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
 } else {
-  failed_samples <- sex_info %>% filter(match_status %in% "Mismatch", "Bad quality") %>%
+  failed_samples <- sex_info %>% filter(match_status %in% "Mismatch") %>%
     select(c(Sample_Name, match_status))
 }
 

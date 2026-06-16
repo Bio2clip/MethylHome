@@ -41,9 +41,12 @@ lines <- suppressWarnings(readLines(sample_sheet))
 
 # Find the index of the row containing "Sample_Name"
 header_index <- grep("^Sample_Name", lines)[1]
+header_line <- lines[header_index]
+
+sep <- if (grepl("\t", header_line)) "\t" else ","
 
 # Read sample sheet file
-sample_info_df <- suppressWarnings(read.csv(sample_sheet, skip = header_index - 1, header = TRUE))
+sample_info_df <- suppressWarnings(read.csv(sample_sheet, sep = sep, skip = header_index - 1, header = TRUE))
 
 meth_QC <- readRDS("${meth_rds}")
 sample_name <- "${sample_id}"
