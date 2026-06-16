@@ -1,9 +1,5 @@
 # MethylHome
 
-Voici une table des matières structurée et adaptée à votre document :
-
-## Table of contents
-
 - [MethylHome](#methylhome)
   - [Description](#description)
   - [Overview](#overview)
