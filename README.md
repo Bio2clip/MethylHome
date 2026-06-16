@@ -1,5 +1,27 @@
 # MethylHome
 
+Voici une table des matières structurée et adaptée à votre document :
+
+## Table of contents
+
+- [MethylHome](#methylhome)
+  - [Description](#description)
+  - [Overview](#overview)
+  - [Dependencies](#dependencies)
+  - [Input Data](#input-data)
+  - [Test Data](#test-data)
+  - [Modules](#modules)
+    - [Quality Control](#quality-control)
+    - [Sex Concordance Control](#sex-concordance-control)
+    - [CNV Analysis](#cnv-analysis)
+    - [MGMT Methylation Status](#mgmt-methylation-status)
+    - [Tumor Purity Estimation](#tumor-purity-estimation)
+  - [Output Structure](#output-structure)
+  - [Singularity Container](#singularity-container)
+  - [Usage](#usage)
+  - [Acknowledgments](#acknowledgments)
+  - [License](#license)
+
 ## Description
 
 **MethylHome** is a Nextflow DSL2 pipeline designed for the analysis of Illumina methylation array data from IDAT files. Some CNV analyses (focal CNV inference and associated visualizations) require internet access and can be disabled for offline execution using `--CNV_focal FALSE`.
@@ -185,7 +207,7 @@ Outputs include:
 * cohort-level sex concordance report;
 * aggregated prediction table.
 
-## CNV Analysis
+### CNV Analysis
 
 CNV inference is performed using the R package `conumee2`.
 
