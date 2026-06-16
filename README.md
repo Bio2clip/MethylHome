@@ -1,22 +1,21 @@
 # MethylHome
 
-- [MethylHome](#methylhome)
-  - [Description](#description)
-  - [Overview](#overview)
-  - [Dependencies](#dependencies)
-  - [Input Data](#input-data)
-  - [Test Data](#test-data)
-  - [Modules](#modules)
+- [Description](#description)
+- [Overview](#overview)
+- [Dependencies](#dependencies)
+- [Input Data](#input-data)
+- [Test Data](#test-data)
+- [Modules](#modules)
     - [Quality Control](#quality-control)
     - [Sex Concordance Control](#sex-concordance-control)
     - [CNV Analysis](#cnv-analysis)
     - [MGMT Methylation Status](#mgmt-methylation-status)
     - [Tumor Purity Estimation](#tumor-purity-estimation)
-  - [Output Structure](#output-structure)
-  - [Singularity Container](#singularity-container)
-  - [Usage](#usage)
-  - [Acknowledgments](#acknowledgments)
-  - [License](#license)
+- [Output Structure](#output-structure)
+- [Singularity Container](#singularity-container)
+- [Usage](#usage)
+- [Acknowledgments](#acknowledgments)
+- [License](#license)
 
 ## Description
 
