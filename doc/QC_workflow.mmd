@@ -7,7 +7,7 @@ flowchart TB
         V["Global OUTPUT"]
   end
     B["Sample sheet"] -.-> D["load IDATs"] & I["compute XY intensities"]
-    C["Database"] -.-> F["plot QC metrics"]
+    C["qc_ref_set"] -.-> F["plot QC metrics"]
     D --> E["extract qc metrics"] & I & W["compute_qc_gs"]
     E --> F & G["merge QC metrics"]
     I --> J["control sex"]
