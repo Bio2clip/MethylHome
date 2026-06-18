@@ -244,7 +244,7 @@ process merge_tumor_purity {
     done
 
     # Sort file according to Sample_Name column 
-    (head -n 1 all_tumor_purity.tsv && tail -n +2 all_tumor_purity.tsv | sort -k3) > tmp.tsv
+    (head -n 1 all_tumor_purity.tsv && tail -n +2 all_tumor_purity.tsv | sort -k1) > tmp.tsv
 
     mv tmp.tsv all_tumor_purity.tsv
     

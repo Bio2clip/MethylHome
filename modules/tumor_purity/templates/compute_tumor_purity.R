@@ -123,9 +123,9 @@ if (sum(getUnmeth(Mset_m) == 0 | getMeth(Mset_m) == 0) < 1000) {
     theme_void()
   
   final_purity_table <- NULL
-  tumor_purity_df <- data.frame(analysis = c("estimate", "absolute"),
-                    value = c(NA, NA)
-                    )
+  purity <- data.frame(Sample_Name = Mset_m@colData@rownames,
+                        absolute = NA,
+                        estimate = NA)
 }
 
 # Write PDF file
@@ -136,5 +136,4 @@ pdf(paste0(sample_name, "_tumor_purity.pdf"),  width = 14, height = 10)
   plot_layout(widths = c(1.4, 0.6))
 dev.off()
 
-tumor_purity_df[["Sample_Name"]] <- sample_name
-write.table(tumor_purity_df, paste0(sample_name,"_tumor_purity.tsv"), sep = "\t", row.names = F, quote = F)
+write.table(purity, paste0(sample_name,"_tumor_purity.tsv"), sep = "\t", row.names = F, quote = F)
