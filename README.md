@@ -321,7 +321,7 @@ Available tags :
 ### Build from source
 
 ```bash
-sudo singularity build MethylHome_latest.sif MethylHome_QC.def
+sudo singularity build MethylHome_latest.sif MethylHome.def
 ```
 
 ### Pull image
