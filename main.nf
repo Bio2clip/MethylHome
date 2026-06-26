@@ -14,7 +14,7 @@ params.ref_f = 'data/epic_geo_ref_f.Rdata'
 params.ref_m = 'data/epic_geo_ref_m.Rdata'
 params.ref_mf = 'data/epic_geo_ref_mf.Rdata'
 params.anno = 'data/annoXY_epic.Rdata'
-params.CNV_focal = 'FALSE'
+params.CNV_focal = 'TRUE'
 params.publish = 'copy'
 
 include { load_idats }                    from "./modules/load_idats"
