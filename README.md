@@ -377,6 +377,6 @@ Thanks to Yvan Nicaise for the original QC and CNV scripts that were adapted and
 
 ## License
 
-MIT License
+GNU GPL3 License
 
 Copyright © 2026
