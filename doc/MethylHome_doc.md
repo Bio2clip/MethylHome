@@ -549,7 +549,7 @@ Le workflow mis en œuvre par *conumee2* est le suivant :
 5. détection optionnelle d’altérations focales par bootstrap ;
 6. génération des profils et visualisations CNV.
 
-![Workflow du package conumee2](https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/bioinformatics/40/2/10.1093_bioinformatics_btae029/2/m_btae029f1.jpeg?Expires=1781687431&Signature=rdsw9LUzN~b84qIXCydXREy3UBR3qzFc-~BEqPpcriPQYM-S~eqYMInRq3KEsDJcN8zWUC1YGIIWv-f-yA2GA5HhT7o7Uh6KkaYttPxJOAIsRnARl3p6c4UJDP-iI2yYNISsOV95A828lqVDYMHPP~QZ9m8nes2SfNJIXdU148IaMuKE~FMlP-u3EVWFYBQ4ihP5Y0G0-ndrDqJAnDGrDD9fVoxD9BxoVz5xFe6ioj~74hG1ZAGENk5VcnAfRmRUF9l1bGkt3uTSALqmnYgF6usNQ~uAuvE7k~12mly6-ToWF5spMTqvHQkZD4yw6JZfsKhidUclcorRXtICqn20DA__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA)
+![Workflow du package conumee2](https://oup.silverchair-cdn.com/oup/backfile/Content_public/Journal/bioinformatics/40/2/10.1093_bioinformatics_btae029/2/btae029f1.jpeg?Expires=1787322780&Signature=jMKkjU86p9pmGwRLgd3l4BXIwr83bJJL3Hfj1XR-I9N8rKxtrt1S2R2Nj7hAGYBX0gY91UihHhtY4jS01dzMRwEST3ca6Z~ZSPHDvqjEZC7V1n3nzVeoePg6PrmWpWXmggIEX84Jx02abTmDMGLtxuJGxU8bluUOZ0~CgYxx08imcSDiBiY4hevb5FUvooaQIPU95hWKbOWL1TM~UaOrpTfGMLHQx0V07mKCFpMH25~S2XVezOlWVjEQiRVPsYfK1MDmk8RVwMSG1LHOd9Uhc6gtcPU5WmBN79If~PvDk7pZFtSMDV~s51wupTgdZJ7cjxi-6TcWLAN9jqpVqi2Dgw__&Key-Pair-Id=APKAIE5G5CRDK6RD3PGA)
 
 *Workflow du package R conumee2*
 ### Gestion des chromosomes sexuels
