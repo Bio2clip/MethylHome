@@ -1,13 +1,15 @@
 #!/usr/bin/env Rscript
 
 # Plot QC 
-# Libraries : ggplot2, dplyr, ggridges, patchwork, gridExtra, minfi (beta)
+# Libraries : ggplot2, dplyr, ggridges, patchwork, gridExtra, tidyr, ewastools, stringr
 
 #### --- DOCUMENTATION --- ####
-#' Display Quality Control 
+#' Compute and display Quality Control metrics
 #' 
 #' @Description 
 #' 
+#' Computes QC metrics as described in the 'BeadArray Controls Reporter Software Guide' from Illumina. 
+#' Computes also log2Meth and log2 unmeth Intensities and Detection rate.
 #' Reproduces plots as displayed in Epignostix (DKFZ). It produces a plot that consists of a
 #' QC report. Plots displayed are : 
 #'  - 21 metrics described in BeadArray Software Guide (Illumina),
@@ -19,19 +21,57 @@
 #' 
 #' @Usage 
 #' 
-#' plot_qc(qc_tsv, qc_ref_set, meth_rds, sample_id)
+#' plot_qc(meth_rds, sample_id, qc_ref_set)
 #' 
 #' @Arguments 
 #' 
-#' qc_tsv          tsv file with qc metrics as returned by extract_qc_metrics
-#' qc_ref_set      tsv file consisting of the output of extract_qc_metrics for the reference idat files
-#' meth_rds        R data file as returned by load_idats
+#' meth_rds        R data file as returned by load_idats ; Output of calling ewastools::read_idats. You can give raw or dye-biaised corrected data
 #' sample_id       Sample name
+#' qc_ref_set      tsv file consisting of the output of extract_qc_metrics for the reference idat files
 #' 
+#' @Value 
 #' 
- 
+#' Return a TSV file containing all computed metrics per sample.
+#' Return a pdf file with a QC report per sample.
+#'
+#' @Details
+#' 
+#' The metrics computed and displayed by the function are listed below : 
+#' 
+#'  - log2 Methylated intensity
+#'  - log2 Unmethylated intensity
+#'  - Detection Rate
+#'  - Restoration
+#'  - Staining Green
+#'  - Staining Red
+#'  - Extension Green
+#'  - Extension Red
+#'  - Hybridization High/Med
+#'  - Hybridization Med/Low
+#'  - Target Removal I
+#'  - Target Removal II
+#'  - Bisulfite Conversion I Green
+#'  - Bisulfite Conversion I Green Bkg
+#'  - Bisulfite Conversion I Red
+#'  - Bisulfite Conversion I Red Bkg
+#'  - Bisulfite Conversion II
+#'  - Bisulfite Conversion II Bkg
+#'  - Specificity I Green
+#'  - Specificity I Red
+#'  - Specificity II
+#'  - Specificity II Bkg
+#'  - Nonpolymorphic Green
+#'  - Nonpolymorphic Red- Nonpolymorphic Red
+#' 
+#' @Note 
+#' 
+#' If you want to compute metrics as performed by 'BeadArray Controls Reporter Software' from Illumina
+#' you have to give raw data before any normalization step to the function. 
+#' This script has been written using the scripts developped by Yvan Nicaise & Clementine Decamps, 2025-2026
+
 #### --- LIBRAIRIES --- ####
 
+library(stringr)
 library(dplyr)
 library(tidyr)
 library(ewastools)
@@ -42,20 +82,77 @@ library(gridExtra)
 
 ### --- INPUT --- ###
 
-### --- Retrieve qc metrics
-qc_df <- read.csv("${qc_tsv}", sep = "\t")
-colnames(qc_df) <- gsub("_", " ", x=colnames(qc_df))
+meth_QC <- readRDS("${meth_rds}")
+sample_name <- "${sample_id}"
 
 ### --- Retrieve reference dataset
 qc_ref_set <- read.csv("${qc_ref_set}", sep = "\t")
 colnames(qc_ref_set) <- gsub("_", " ", x=colnames(qc_ref_set))
 
-### --- Retrieve idats object
-meth_QC <- readRDS("${meth_rds}")
-sample_id <- qc_df[["Sample IDAT"]]
-rownames(qc_df) <- qc_df[["Sample IDAT"]]
-sample_name <- "${sample_id}"
+###--- Retrieve threshold for bad quality samples
+quality_threshold <- ${quality_threshold}
+
+### --- QC metrics
+
+QC <- control_metrics(meth_QC)
+table_res <- c()
+for(i in 1:length(QC)){
+  loc_metrique = QC[[i]]
+  table_res = rbind(table_res, c(names(QC)[i], attr(loc_metrique,"threshold"), loc_metrique))
+    
+}
+colnames(table_res) <- c("Metrique", "Seuil", meth_QC[["meta"]][["sample_id"]])
+ 
+table_res <- as.data.frame(table_res)
   
+table_res_t <- t(table_res) # Transpose table to access more easily Metrics values
+colnames(table_res_t) <- gsub(" ", "_", x=table_res[["Metrique"]]) # To prevent bad naming, e.g. using spaces
+colnames(table_res_t) <- gsub('\\\\(Bkg)', "Bkg.", x = colnames(table_res_t)) # Better name for plotting (doesn't like "()")
+table_res_t <- as.data.frame(table_res_t[-1,]) # get rid of unwanted values
+table_res_t <- as.data.frame(table_res_t[-1,])
+table_res_t[["Sample_IDAT"]] <- rownames(table_res_t)
+  
+### --- Main QC Metrics 
+  
+# Log2 (Un)Meth Intensities
+Log2MethIntensity_ewas   <- round(log2(matrixStats::colMedians(meth_QC[["M"]]  + 1, na.rm=TRUE)), 3)
+Log2UnmethIntensity_ewas   <- round(log2(matrixStats::colMedians(meth_QC[["U"]]  + 1, na.rm=TRUE)), 3)
+  
+names(Log2MethIntensity_ewas) <- meth_QC[["meta"]][["sample_id"]]  # Name the intensities according to their sample of origin
+names(Log2UnmethIntensity_ewas) <- meth_QC[["meta"]][["sample_id"]]
+
+# DetectionP computation
+detP_ewas <- meth_QC %>% ewastools::detectionP.neg()
+
+
+probes_0.01 <- sum(detP_ewas\$detP < log10(0.01), na.rm = TRUE) - sum(is.na(detP_ewas\$detP))
+probes_0.05 <- sum(detP_ewas\$detP < log10(0.05), na.rm = TRUE) - sum(is.na(detP_ewas\$detP))
+  
+# Create summary dataframe
+main_qc_df <- data.frame(
+  Sample_Name = sample_name,
+  Sample_IDAT = names(Log2MethIntensity_ewas),
+  DetectionRate = round(colMeans(detP_ewas[["detP"]] < log10(0.05), na.rm=TRUE), 4),
+  Log2MethIntensity = Log2MethIntensity_ewas,
+  Log2UnmethIntensity = Log2UnmethIntensity_ewas,
+  N_probes_sup_0.05 = probes_0.05,
+  N_probes_sup_0.01 = probes_0.01,
+  check.names = FALSE
+) |>
+  dplyr::left_join(table_res_t, by = "Sample_IDAT")
+
+### -- Export all QC metrics in a csv file
+write.table(main_qc_df, paste0(sample_name, "_qc_metrics_output.tsv"), row.names = F, sep = "\t", quote = FALSE, dec = ".")
+
+qc_df <- main_qc_df
+colnames(qc_df) <- gsub("_", " ", x=colnames(qc_df))
+colnames(qc_df) <- gsub("-", ".", x=colnames(qc_df))
+colnames(qc_df) <- gsub("/", ".", x=colnames(qc_df))
+rownames(qc_df) <- qc_df[["Sample IDAT"]]
+
+sample_id <- qc_df[["Sample IDAT"]]
+print(sample_id)
+
 ### --- Log2Meth and unmeth intensities quality control
   
 log2_un_meth_intensities_plot <- ggplot(qc_ref_set, aes(x = Log2UnmethIntensity, y = Log2MethIntensity)) +
@@ -76,7 +173,7 @@ log2_un_meth_intensities_plot <- ggplot(qc_ref_set, aes(x = Log2UnmethIntensity,
 ### --- Plot ecdf detP
 
 # Check how many probes are completely missing (M + U)
-if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
+if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > quality_threshold) {
   ecdf_detP_plot <- ggplot() +
     annotate("text", x = 0, y = 0, label = "Too low quality to display \n detectionRate", size = 5, hjust = 0.5, col="red") +
     xlim(-1, 1) + ylim(-1, 1) +
@@ -135,7 +232,8 @@ df_threshold[["threshold_scaled"]] <- df_threshold[["threshold"]] / df_threshold
 df_threshold <- unique(df_threshold)
 
 # Create Sample dataframe
-df_sample <- as.data.frame(t(qc_df %>% select(-c(DetectionRate, Log2MethIntensity, Log2UnmethIntensity)))) 
+print(colnames(qc_df))
+df_sample <- as.data.frame(t(qc_df %>% select(-c(DetectionRate, Log2MethIntensity, Log2UnmethIntensity, `N probes sup 0.05`, `N probes sup 0.01`)))) 
 colnames(df_sample) <- as.character(df_sample[2,])
 df_sample <-  df_sample[-c(1,2), , drop = FALSE] %>% dplyr::select(all_of(sample_id))
 
@@ -188,7 +286,7 @@ p <-ggplot(df_long, aes(x = value, y = metric)) +
 ### --- Plot beta
 
 # Check how many probes are completely missing (M + U)
-if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
+if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > quality_threshold) {
   beta_plot <- ggplot() +
     annotate("text", x = 0, y = 0, label = "Too low quality to display \n beta value distribution", size = 5, hjust = 0.5, col="red") +
     xlim(-1, 1) + ylim(-1, 1) +
@@ -198,7 +296,7 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
   
   # Compute beta 
   beta = as.data.frame(meth_QC %>% detectionP.neg %>% mask(0.05) %>% correct_dye_bias %>% dont_normalize)
-  
+
   # Create dataframe manifest info
   reduced_manifest <- meth_QC[["manifest"]] %>%
     select(ilmn_id, probe_design)
@@ -244,7 +342,7 @@ if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
 ### --- Create summary table / sample
 
 qc_sample_df <- qc_df %>%
-  filter(`Sample IDAT` %in% sample_id)
+  filter(`Sample IDAT` %in% sample_id) %>% select(-c(`N probes sup 0.05`, `N probes sup 0.01`))
 
 qc_sample_df <- as.data.frame(t(qc_sample_df))
 colnames(qc_sample_df) <- "Value"
@@ -271,7 +369,7 @@ table_plot <- tableGrob(qc_sample_df, theme = custom_theme) # Convert to a graph
 ### --- Create message bottom 
 
 # Check how many probes are completely missing (M + U)
-if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > 1000) {
+if (colSums(is.na(meth_QC[["M"]] + meth_QC[["U"]])) > quality_threshold) {
   caption <- "Warning: Quality control checks did not meet the required parameters."
   col_caption <- "red"
   annotation <- ggplot() +

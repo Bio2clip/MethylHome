@@ -47,15 +47,17 @@ sex_info[["predicted_sex"]] <- fct_na_value_to_level(
 
 # Create a match column to compare predictions with labels
 sex_info[["match_status"]] <- ifelse(
-  as.character(sex_info[["predicted_sex"]]) == "Unknown" | 
-    as.character(sex_info[["Gender"]]) == "U", 
+  # If the sex is unknown by any one of the two sources, status is put to NA
+  as.character(sex_info[["predicted_sex"]]) == "Unknown" | as.character(sex_info[["Gender"]]) == "U", 
   NA_character_,  # If one is unknown we put it to NA
   ifelse(
+    # If the given sex matches the predicted one : Correct ; else Mismatch
     as.character(sex_info[["predicted_sex"]]) == as.character(sex_info[["Gender"]]), 
     "Correct",    
     "Mismatch"    
   )
 )
+
 sex_info[["match_status"]][is.na(sex_info[["X"]]) ] <- "Bad quality"
 sex_info[["match_status"]][is.na(sex_info[["match_status"]]) ] <- "Undetermined"
 
@@ -79,31 +81,39 @@ p <- ggplot(sex_info, aes(x = X, y = Y, color = match_status, shape = predicted_
   theme(legend.position = "right",
         plot.title = element_text(size=11, face="bold", vjust = 0.5, hjust = 0.5))
 
-### --- Create table with failed samples
+### --- Create table with failed samples to display
+
 if (length(sex_info[["Sample_IDAT"]]) < 25) {
+  # If we have at most three runs (24 samples), every sample is displayed in the table
   failed_samples <- sex_info %>% select(c(Sample_Name, match_status))
   failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", "Undetermined", "Correct", "Bad quality"))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
   
 } else if (length(sex_info[["Sample_IDAT"]][sex_info[["match_status"]] == "Undetermined" | sex_info[["match_status"]] == "Mismatch" ]) < 25) {
+  # If we have more than three runs, only Mismatch, undetermined and bad quality samples will be displayed if they are less than 25
   failed_samples <- sex_info %>% filter(match_status %in% c("Mismatch", "Undetermined", "Bad quality")) %>%
     select(c(Sample_Name, match_status))
   failed_samples[["match_status"]] <- factor(failed_samples[["match_status"]], levels = c("Mismatch", "Undetermined",  "Bad quality"))
   failed_samples <- failed_samples[order(failed_samples[["match_status"]]), ]
 } else {
+  # If we have more than 24 mismatch undetermined and bad quality samples we only display the mismatch ones
   failed_samples <- sex_info %>% filter(match_status %in% "Mismatch") %>%
     select(c(Sample_Name, match_status))
 }
 
-# Define colors based on match_status info
-row_fill <- case_when(
-  failed_samples[["match_status"]] == "Mismatch" ~ "red2",
-  failed_samples[["match_status"]] == "Correct"  ~ "palegreen2",
-  failed_samples[["match_status"]] == "Undetermined" ~ "tan1",
-  failed_samples[["match_status"]] == "Bad quality" ~ "indianred2",
+
+# Dictionary of colors
+color_dict <- c(
+  "Correct"      = "palegreen2",
+  "Mismatch"     = "red2",
+  "Undetermined" = "tan1",
+  "Bad quality"  = "indianred2"
 )
 
-# Create the theme
+# Assign colors
+row_fill <- color_dict[as.character(failed_samples[["match_status"]])]
+
+# Create theme
 custom_theme <- ttheme_default(
   core = list(
     bg_params = list(fill = row_fill)),

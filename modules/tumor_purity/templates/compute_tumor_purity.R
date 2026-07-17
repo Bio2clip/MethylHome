@@ -37,24 +37,36 @@ library(gridExtra)
 sample_name <- "${sample_id}"
 query_rgset <- readRDS("${rgset_rds}")
 
+# Retrieve threshold for bad quality samples
+threshold <- ${purity_quality_threshold}
+
+
 Mset_m <- preprocessRaw(query_rgset)
 
-if (sum(getUnmeth(Mset_m) == 0 | getMeth(Mset_m) == 0) < 1000) {
-  # Compute beta values
-  betas_epicv2 <- getBeta(Mset_m)
+# Compute beta values
+ betas_epicv2 <- getBeta(Mset_m)
 
-  # Transform probe names to fit previous annotation
-  rownames(betas_epicv2) <-  gsub("_.*\$", "", x=rownames(betas_epicv2))
+# Transform probe names to fit previous annotation
+rownames(betas_epicv2) <-  gsub("_.*\$", "", x=rownames(betas_epicv2))
 
-  # Load model to retrieve probes of interest
-  data("RFpurify_ABSOLUTE")  
-  data("RFpurify_ESTIMATE") 
-  model_probes_absolute <- rownames(RFpurify_ABSOLUTE\$importance)
-  model_probes_estimates <- rownames(RFpurify_ESTIMATE\$importance)
+# Load model to retrieve probes of interest
+data("RFpurify_ABSOLUTE")  
+data("RFpurify_ESTIMATE") 
+model_probes_absolute <- rownames(RFpurify_ABSOLUTE\$importance)
+model_probes_estimates <- rownames(RFpurify_ESTIMATE\$importance)
 
-  # Retrieve probes only present in 450k
-  diff_absolute <- model_probes_absolute[!model_probes_absolute %in% rownames(betas_epicv2) ]
-  diff_estimates <- model_probes_estimates[!model_probes_estimates %in% rownames(betas_epicv2) ]
+# Keep only probes of interest
+betas_clean_cpg <- betas_epicv2[rownames(betas_epicv2) %in% c(model_probes_estimates, model_probes_absolute),, drop=F]
+
+# Retrieve NA prodes ID
+probes_na <- rownames(betas_clean_cpg)[rowSums(is.na(betas_clean_cpg)) > 0]
+
+# Retrieve probes only present in 450k
+diff_absolute <- model_probes_absolute[!model_probes_absolute %in% rownames(betas_epicv2)]
+diff_estimates <- model_probes_estimates[!model_probes_estimates %in% rownames(betas_epicv2) ]
+
+# If not too many probes missing
+if (sum(is.na(betas_clean_cpg)) < threshold) {
 
   # Missing probes matrix with rownames to probes id
   mat_test_abs <- matrix(
@@ -63,7 +75,7 @@ if (sum(getUnmeth(Mset_m) == 0 | getMeth(Mset_m) == 0) < 1000) {
     ncol = ncol(betas_epicv2),
     byrow = FALSE
   )
-    
+
   rownames(mat_test_abs) <- diff_absolute
     
   mat_test_est <- matrix(
@@ -75,26 +87,26 @@ if (sum(getUnmeth(Mset_m) == 0 | getMeth(Mset_m) == 0) < 1000) {
   rownames(mat_test_est) <- diff_estimates
     
   # Complete beta values matrix
-  betas_allcpg_v2 <- rbind(betas_epicv2, mat_test_abs, mat_test_est)
-    
-  # Keep only probes of interest
-  betas_clean_cpg_v2 <- betas_allcpg_v2[rownames(betas_allcpg_v2) %in% c(model_probes_estimates, model_probes_absolute),, drop=F]
-    
+  betas_clean_cpg <- rbind(betas_clean_cpg, mat_test_abs, mat_test_est)
+  
+  # Put NA probes to 0.5
+  betas_clean_cpg[rownames(betas_clean_cpg) %in% probes_na] <- 0.5
+
   # Keep unique values for duplicated probes
-  dup <- rownames(betas_clean_cpg_v2)[duplicated(rownames(betas_clean_cpg_v2))]
+  dup <- rownames(betas_clean_cpg)[duplicated(rownames(betas_clean_cpg))]
     
   for (cpg in dup){
-    betas_clean_cpg_v2[rownames(betas_clean_cpg_v2) == cpg]  <- mean(betas_clean_cpg_v2[rownames(betas_clean_cpg_v2) == cpg] )
+    betas_clean_cpg[rownames(betas_clean_cpg) == cpg]  <- mean(betas_clean_cpg[rownames(betas_clean_cpg) == cpg], na.rm = TRUE)
   }
     
-  betas_m <- betas_clean_cpg_v2[!duplicated(rownames(betas_clean_cpg_v2)),, drop=FALSE]
-    
+  betas_m <- betas_clean_cpg[!duplicated(rownames(betas_clean_cpg)),, drop=FALSE]
+
   # Predict tumor purity with ABSOLUTE and ESTIMATE method
   absolute <- predict_purity_betas(betas_m,method="ABSOLUTE")
   estimate <- predict_purity_betas(betas_m,method="ESTIMATE")
 
   # Create dataframe with computed purities
-  purity <- data.frame(Sample_Name = Mset_m@colData@rownames,
+  purity <- data.frame(Sample_Name = sample_name,
                         absolute = absolute,
                         estimate = estimate)
     
@@ -123,7 +135,7 @@ if (sum(getUnmeth(Mset_m) == 0 | getMeth(Mset_m) == 0) < 1000) {
     theme_void()
   
   final_purity_table <- NULL
-  purity <- data.frame(Sample_Name = Mset_m@colData@rownames,
+  purity <- data.frame(Sample_Name = sample_name,
                         absolute = NA,
                         estimate = NA)
 }

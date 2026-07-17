@@ -32,8 +32,6 @@ sample_name <- "${sample_id}"
 # Get rid of "_Grn.idat" 
 infile <- gsub("_Grn.idat", "", x=files)
 
-print(paste("Sample prefix: ", infile))
-
 meth <- read_idats(infile, quiet=FALSE) # `quiet=TRUE` suppresses the progress bar
 
 ### --- Save output for Nextflow

@@ -8,7 +8,7 @@ process mgmt {
 	publishDir "${params.output}/mgmt", mode: params.publish, pattern: "*.tsv"
 
     input:
-    tuple val(sample_id), path(rgset_rds)
+    tuple val(sample_id), val(sex), path(rgset_rds)
 
     output:
     path "MGMT_plot_minfi_${sample_id}.pdf", emit: PDF

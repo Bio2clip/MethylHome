@@ -22,7 +22,7 @@
 #' anno                    R data object containing annotation for reference in EPICv1 and query in EPICv2
 #' sample_id               name of the given samples
 #' idat                    IDAt file of the query sample
-#' sample_sheet            TSV file containing sample name, sample idat and gender
+#' sex                     sex of the studied sample
 #' CNV_focal               TRUE or FALSE, wether to compute CNV.focal()
 #' 
 #' @Note
@@ -44,22 +44,11 @@ refM_path <- "$ref_m"
 refMF_path <- "$ref_mf"
 
 anno_path <- "$anno"
-
-# Get query sample name and file
-sample_name <- "${sample_id}"
-
-# Get sample sheet
-sample_sheet_path <- "${sample_sheet}"
-# Store all sample sheet lines
-lines <- suppressWarnings(readLines(sample_sheet_path))
-# Find the index of the row containing "Sample_Name"
-header_index <- grep("^Sample_Name", lines)[1]
-# Read sample sheet file
-header_line <- lines[header_index]
-sep <- if (grepl("\t", header_line)) "\t" else ","
-sample_sheet <- suppressWarnings(read.csv(sample_sheet_path, sep = sep, skip = header_index - 1, header = TRUE))
-
 CNV_focal <- "$CNV_focal"
+
+# Get query sample name and sex
+sample_name <- "${sample_id}"
+sex <- "${sex}"
 
 # Load data ; rgsetobject
 RGsettarget <- readRDS("${rgset_rds}")
@@ -69,17 +58,16 @@ sample_IDAT <- RGsettarget@colData@rownames[1]
 RGsetAdd <- RGsettarget
 RGsetAdd@colData@rownames <- "dumy"
 
-
 RGset <- minfi::combine(RGsettarget, RGsetAdd)
 Msettarget <- minfi::preprocessRaw(RGset)
 
 # Select reference dataset depending on sample sex
-if(sample_sheet[["Gender"]][sample_sheet[["Sample_Name"]] == sample_name] == "F"){
+if(sex == "F" || sex == "Female"){
   RGset <- minfi::combine(RGsettarget, RGsetAdd)
   Msettarget <- minfi::preprocessRaw(RGset)
   load(refF_path)
   ref <- data.cF_epic
-} else if (sample_sheet[["Gender"]][sample_sheet[["Sample_Name"]] == sample_name] == "M") {
+} else if (sex == "M" || sex == "Male") {
 
   load(refM_path)
   ref <- data.cM_epic
@@ -102,7 +90,7 @@ x <- conumee2::CNV.bin(x)
 x <- conumee2::CNV.detail(x)
 x <- conumee2::CNV.segment(x)
 
-if (CNV_focal == TRUE) {
+if (CNV_focal == "true") {
   x <- conumee2::CNV.focal(x, sig_cgenes = F)
 }
 
@@ -122,9 +110,9 @@ for (i in 1:22) {
   conumee2::CNV.genomeplot(x[1], chr = chr)
   dev.off()
 }
-
+print(CNV_focal)
 # CNV plot by detail regions
-if (CNV_focal == TRUE) {
+if (CNV_focal == "true") {
   genes<- anno_epic@detail\$name # Retrieve detail regions names
   print(genes)
   for (i in 1:length(genes)) {

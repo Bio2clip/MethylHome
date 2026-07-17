@@ -8,8 +8,8 @@ process extract_xy_intensities {
 	publishDir "${params.output}/qc/sample_sex", mode: params.publish, pattern: "*.tsv"
 
     input: 
-        path sample_sheet
-        tuple val(sample_id), path(meth_rds)
+        tuple val(sample_id), val(sex), path(meth_rds)
+        val quality_threshold
 
     output:
         path "${sample_id}_xy_intensities.tsv"

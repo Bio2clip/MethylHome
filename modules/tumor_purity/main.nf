@@ -9,7 +9,8 @@ process tumor_purity {
 
 
     input:
-    tuple val(sample_id), path(rgset_rds)
+    tuple val(sample_id), val(sex), path(rgset_rds)
+    val purity_quality_threshold
     
     output:
     path "${sample_id}_tumor_purity.pdf", emit: PDF

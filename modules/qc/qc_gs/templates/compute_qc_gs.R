@@ -37,8 +37,6 @@ ctrlR <- meth_qc[["ctrlR"]]
 # Plot Restoration (only green channel)
 
 # Retrieve probes indexes
-print(unique(meth_qc[["controls"]][["group"]]))
-print(meth_qc[["controls"]][meth_qc[["controls"]][["group"]] == "RESTORATION", index])
 index <- meth_qc[["controls"]][meth_qc[["controls"]][["group"]] == "RESTORATION", index]
 control_restoration <- as.data.frame(t(ctrlG[index,]))
 colnames(control_restoration) <- "value"

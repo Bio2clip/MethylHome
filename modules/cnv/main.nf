@@ -13,7 +13,7 @@ process compute_cnv {
 
     input: 
         path sample_sheet
-        tuple val(sample_id), path(rgset_rds)
+        tuple val(sample_id), val(sex), path(rgset_rds)
         path ref_f
         path ref_m
         path ref_mf
@@ -21,7 +21,11 @@ process compute_cnv {
         val(CNV_focal)
 
     output:
-        tuple path("${sample_id}_*.png"), path("${sample_id}_*_CNVdetail.tsv"), path("${sample_id}_*_metrics.tsv"), path("${sample_id}_*.igv"), path("${sample_id}_*.seg")
+        path("${sample_id}_*.png"), emit: PNG 
+        path("${sample_id}_*_CNVdetail.tsv"), emit: DETAIL
+        path("${sample_id}_*_metrics.tsv"), emit: METRICS
+        path("${sample_id}_*.igv"), emit: IGV
+        path("${sample_id}_*.seg"), emit : SEGMENTS
 
     script:
     template "compute_cnv.R"

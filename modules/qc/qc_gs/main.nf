@@ -8,7 +8,7 @@ process compute_qc_gs {
 	//publishDir "${params.output}/qc/sample_gs", mode: params.publish, pattern: "*.tsv"
 
     input: 
-        tuple val(sample_id), path(meth_rds)
+        tuple val(sample_id), val(sex), path(meth_rds)
 
     output:
         path ("${sample_id}_qc_metrics_gs.tsv")
