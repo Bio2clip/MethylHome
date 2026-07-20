@@ -31,7 +31,7 @@ The pipeline provides:
 * MGMT promoter methylation status prediction;
 * tumor purity estimation.
 
-> **Complete documentation**, including descriptions of all pipeline processes, parameters, methodologies, and outputs, is available in `doc/MethylHome_doc.md`.
+> **Complete documentation**, including descriptions of all pipeline processes, parameters, methodologies, and outputs, is available in [doc/MethylHome_doc.md](doc/MethylHome_doc.md).
 
 ### Workflow
 
@@ -388,7 +388,7 @@ nextflow run main.nf \
 
 ## Documentation
 
-The `doc/MethylHome_doc.md` file contains comprehensive documentation covering:
+The [doc/MethylHome_doc.md](doc/MethylHome_doc.md) file contains comprehensive documentation covering:
 
 * Pipeline architecture;
 * Description of every Nextflow process;
