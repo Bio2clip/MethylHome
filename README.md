@@ -388,7 +388,7 @@ nextflow run main.nf \
 
 ## Documentation
 
-The `docs/` directory contains comprehensive documentation covering:
+The `doc/MethylHome_doc.md` file contains comprehensive documentation covering:
 
 * Pipeline architecture;
 * Description of every Nextflow process;
