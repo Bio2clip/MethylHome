@@ -362,10 +362,13 @@ Run the following script to generate the reference objects:
 
 ```bash
 singularity exec -B $(pwd) "library://judrnd/hcl/methylhome:latest" \
-Rscript resources/create_objects_for_CNV.R <GEO_IDAT_directory> <outdir>
+Rscript resources/create_objects_for_CNV.R <GEO_IDAT_directory> <outdir> <exclude> <detail> <cosmic> 
 ```
 
 * `<GEO_IDAT_directory>`: path to the downloaded IDAT files
+* `<exclude>`: TSV file listing genomic regions to exclude from the CNV analysis (e.g., `data/DKFZ_exclude.tsv`)
+* `<detail>`: TSV file listing genomic regions to prioritize for detailed CNV inspection and reporting (e.g., `data/DKFZ_detail.tsv`)
+* `<cosmic>`: TSV file containing the list of COSMIC cancer-associated genes to highlight in the analysis (e.g., `data/cosmic_genes.tsv`)
 * `<outdir>`: directory where output objects will be saved. . If this is different from $(pwd), you must also pass it explicitly to Nextflow when launching the pipeline with the arguments : 
 * `ref_m`, 
 * `ref_f`, 

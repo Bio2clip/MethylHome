@@ -17,12 +17,15 @@
 #' 
 #' @Usage 
 #' 
-#' Rscript create_objects_for_CNV.R GEO_idats_folder output_directory
+#' Rscript create_objects_for_CNV.R GEO_idats_folder output_directory exclude_TSV detail_TSV cosmic_TSV
 #' 
 #' @Arguments 
 #' 
 #' idat_dir      directory of the GSE306226 idat files from the reference database
 #' outdir        directory on which to write reference and annotation files
+#' exclude       TSV file with genomic coordinates of regions to exclude from CNV analysis 
+#' detail        TSV file with genomic coordinates of regions to study in more depth in CNV analysis 
+#' cosmic        TSV file with genomic coordinates of all cosmic genes 
 #' 
 #' @Value 
 #' 
@@ -31,6 +34,7 @@
 #'    * ref_m : reference object for male samples for CNV computation
 #'    * ref_mf : reference object for unknown sex samples for CNV computation
 #'    * anno_epic : annotation object for CNV computation
+#'    * anno_epic_cosmix : annotation object for CNV computation using cosmic genes
 #'    
 
 library(minfi)
@@ -39,12 +43,16 @@ library(conumee2)
 
 # Get filepaths to GEO IDAT files
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) < 2) {
-  stop("stop Usage : Rscript create_objects_for_CNV.R <GEO_IDAT_directory> <outdir>")
+if (length(args) < 4) {
+  stop("stop Usage : Rscript create_objects_for_CNV.R <GEO_IDAT_directory> <outdir> <exclude> <detail> <cosmic>")
 }
 
 GEOdir <- normalizePath(args[1])
 outdir <- normalizePath(args[2]) 
+exclude <- normalizePath(args[3]) 
+detail <- normalizePath(args[4]) 
+cosmic <- normalizePath(args[5]) 
+
 
 # separate male and female files
 files_m <- c("GSM9195035_205862290042_R06C01", "GSM9195036_205862290042_R07C01", "GSM9195039_205862290025_R06C01",
@@ -74,11 +82,21 @@ data.cM_epic <- conumee2::CNV.load(Msetmodele_m_epic)
 data.cF_epic <- conumee2::CNV.load(Msetmodele_f_epic)
 data.cMF_epic <- conumee2::CNV.load(Msetmodele_mf_epic)
 
+
+exregions<-read.table(exclude, sep="\t", header=TRUE)
+exclude_regions<-makeGRangesFromDataFrame(exregions,keep.extra.columns=TRUE)
+deregions<-read.table(detail, sep="\t", header=TRUE)
+detail_regions<-makeGRangesFromDataFrame(deregions,keep.extra.columns=TRUE)
+deregions_cosmic<-read.table(cosmic, sep="\t", header=TRUE)
+detail_cosmic_regions<-makeGRangesFromDataFrame(deregions_cosmic,keep.extra.columns=TRUE)
+
 # Create annotation for 
 anno_epic <- conumee2::CNV.create_anno(bin_minprobes = 15, bin_minsize = 50000,   bin_maxsize = 5000000, array_type = c("EPIC","EPICv2"), exclude_regions = exclude_regions, detail_regions = detail_regions, chrXY = TRUE)
+anno_epic_cosmic <- conumee2::CNV.create_anno(bin_minprobes = 15, bin_minsize = 50000,   bin_maxsize = 5000000, array_type = c("EPIC","EPICv2"), exclude_regions = exclude_regions, detail_regions = detail_cosmic_regions, chrXY = TRUE)
 
 
 save(data.cF_epic, file = file.path(outdir, "data/epic_geo_ref_f.Rdata"))
 save(data.cM_epic, file = file.path(outdir, "data/epic_geo_ref_m.Rdata"))
 save(data.cMF_epic, file = file.path(outdir, "data/epic_geo_ref_mf.Rdata"))
 save(anno_epic, file = file.path(outdir, "data/annoXY_epic.Rdata"))
+save(anno_epic_cosmic, file = file.path(outdir, "data/anno_epic_cosmic.Rdata"))
