@@ -18,6 +18,7 @@ process compute_cnv {
         path ref_m
         path ref_mf
         path anno
+        path anno_cosmic
         val(CNV_focal)
 
     output:
@@ -26,6 +27,7 @@ process compute_cnv {
         path("${sample_id}_*_metrics.tsv"), emit: METRICS
         path("${sample_id}_*.igv"), emit: IGV
         path("${sample_id}_*.seg"), emit : SEGMENTS
+        path("${sample_id}_*_CNVdetail_cosmic.tsv"), emit: DETAIL_COSMIC
 
     script:
     template "compute_cnv.R"

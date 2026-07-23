@@ -19,7 +19,8 @@
 #' 
 #' ref_f                   R data object containing reference dataset for female samples
 #' ref_m                   R data object containing reference dataset for male samples
-#' anno                    R data object containing annotation for reference in EPICv1 and query in EPICv2
+#' anno                    R data object containing annotation for reference in EPICv1 and query in EPICv2 and details set to DKFZ list
+#' anno_path_cosmic        R data object containing annotation for reference in EPICv1 and query in EPICv2 and details set to cosmic genes
 #' sample_id               name of the given samples
 #' idat                    IDAt file of the query sample
 #' sex                     sex of the studied sample
@@ -44,11 +45,13 @@ refM_path <- "$ref_m"
 refMF_path <- "$ref_mf"
 
 anno_path <- "$anno"
+anno_path_cosmic <- "$anno_cosmic"
 CNV_focal <- "$CNV_focal"
 
 # Get query sample name and sex
 sample_name <- "${sample_id}"
 sex <- "${sex}"
+
 
 # Load data ; rgsetobject
 RGsettarget <- readRDS("${rgset_rds}")
@@ -156,4 +159,24 @@ conumee2::CNV.write(x[1], what = "probes", file = paste0(sample_name, "_", Sampl
 write.table(metrics, paste0(sample_name, "_", SampleIDAT, "_metrics.tsv"), sep = "\t", row.names = F, quote = F)
 
 
+### Compute values for all cosmic genes
 
+load(anno_path_cosmic)
+
+# Compute CNV
+y <- conumee2::CNV.fit(query = query, ref = ref, anno_epic_cosmic)
+y <- conumee2::CNV.bin(y)
+y <- conumee2::CNV.detail(y)
+y <- conumee2::CNV.segment(y)
+
+if (CNV_focal == "true") {
+  y <- conumee2::CNV.focal(y, sig_cgenes = F)
+}
+
+# Retrieve sample idat
+SampleIDAT<-RGsettarget@colData@rownames[1]
+
+
+detail_cosmic <- conumee2::CNV.write(y[1], what = "detail")
+detail_cosmic[[1]][["Sample_Name"]] <- sample_name
+write.table(detail_cosmic[[1]], paste0(sample_name, "_", SampleIDAT, "_CNVdetail_cosmic.tsv"), sep = "\t", quote = F, row.names = F)

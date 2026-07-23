@@ -14,6 +14,7 @@ params.ref_f = "$projectDir/data/epic_geo_ref_f.Rdata"
 params.ref_m = "$projectDir/data/epic_geo_ref_m.Rdata"
 params.ref_mf = "$projectDir/data/epic_geo_ref_mf.Rdata"
 params.anno = "$projectDir/data/annoXY_epic.Rdata"
+params.anno_cosmic = "$projectDir/data/anno_epic_cosmic.Rdata"
 
 // Wether to compute focal CNV and so use internet
 params.CNV_focal = false
@@ -23,6 +24,7 @@ params.output = "output"
 params.all_qc_metrics_file = "all_qc_metrics"
 params.all_qc_metrics_gs_file = "all_qc_metrics_gs"
 params.all_CNV_detail_file = "all_CNV_detail"
+params.all_CNV_detail_cosmic_file = "all_CNV_detail_cosmic"
 params.all_CNV_metrics_file = "all_CNV_metrics"
 params.all_CNV_segment_file = "all_CNV_segment"
 params.all_tumor_purity_file = "all_tumor_purity"
@@ -37,6 +39,7 @@ include { merge_tsv_files as merge_qc_metrics }             from "./modules/merg
 include { merge_xy_intensities }                            from "./modules/merge_tsv"
 include { merge_tsv_files as merge_qc_metrics_gs }          from "./modules/merge_tsv"
 include { merge_tsv_files as merge_cnv_detail }             from "./modules/merge_tsv"
+include { merge_tsv_files as merge_cnv_detail_cosmic}       from "./modules/merge_tsv"
 include { merge_tsv_files as merge_cnv_metrics }            from "./modules/merge_tsv"
 include { merge_tsv_files as merge_cnv_segment }            from "./modules/merge_tsv"
 include { merge_tsv_files as merge_tumor_purity }           from "./modules/merge_tsv"
@@ -79,7 +82,7 @@ workflow {
                      params.all_qc_metrics_file,
                      "qc",
                      1)
-    // Control sex    
+    // Control sex 
     sex_info = extract_xy_intensities(load_idats.out,
                                       params.quality_threshold)
     all_sex_info = sex_info.collect()
@@ -108,13 +111,19 @@ workflow {
                       file(params.ref_f), 
                       file(params.ref_m), 
                       file(params.ref_mf), 
-                      file(params.anno), 
+                      file(params.anno),
+                      file(params.anno_cosmic), 
                       params.CNV_focal)
 
     merge_cnv_detail(cnv.DETAIL.collect(),
                      params.all_CNV_detail_file,
                      "cnv",
                      8)
+    
+    merge_cnv_detail_cosmic(cnv.DETAIL_COSMIC.collect(),
+                            params.all_CNV_detail_cosmic_file,
+                            "cnv",
+                            8)
 
     merge_cnv_segment(cnv.SEGMENTS.collect(),
                       params.all_CNV_segment_file,
