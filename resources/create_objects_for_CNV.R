@@ -87,7 +87,7 @@ exregions<-read.table(exclude, sep="\t", header=TRUE)
 exclude_regions<-makeGRangesFromDataFrame(exregions,keep.extra.columns=TRUE)
 deregions<-read.table(detail, sep="\t", header=TRUE)
 detail_regions<-makeGRangesFromDataFrame(deregions,keep.extra.columns=TRUE)
-deregions_cosmic<-read.table(cosmic, sep="\t", header=TRUE)
+deregions_cosmic<-read.table(cosmic, sep="\t", header=TRUE, quote = "\"")
 detail_cosmic_regions<-makeGRangesFromDataFrame(deregions_cosmic,keep.extra.columns=TRUE)
 
 # Create annotation for 
